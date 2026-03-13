@@ -16,7 +16,7 @@ export default function LandingPage() {
           <img
             src="/logo1.png"
             alt="HoneyMat"
-            className="h-16 w-auto object-contain drop-shadow-lg"
+            className="h-16 w-auto object-contain drop-shadow-lg rounded-[8px]"
           />
           <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-md">
             HoneyMat

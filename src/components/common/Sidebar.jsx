@@ -97,7 +97,7 @@ const Sidebar = () => {
         <img
           src="/logo1.png"
           alt="HoneyMat"
-          className="h-12 w-auto object-contain"
+          className="h-12 w-auto object-contain rounded-[8px]"
         />
         <h1 className="text-xl font-bold" style={{ color: '#f2f9f5' }}>
           HoneyMat
