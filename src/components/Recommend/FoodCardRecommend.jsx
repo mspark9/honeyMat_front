@@ -31,7 +31,7 @@ const FoodCardRecommend = ({
       setIsLoading(true);
       try {
         const data = await api.post('/api/ai/food-tags', {
-          name: food.name,
+          foodname: food.name,
           kcal: food.kcal,
           carbs: food.carbs,
           protein: food.protein,

@@ -116,7 +116,9 @@ const RecommendPage = () => {
   const fetchRandomFoods = async () => {
     setIsDataLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/recommend/random`);
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/recommend/random`,
+      );
       const data = await res.json();
       const normalized = normalizeData(data);
 
@@ -199,11 +201,15 @@ const RecommendPage = () => {
   ];
 
   // AI 챗봇 전송
+  // AI 챗봇 전송 및 카드 동기화 로직
   const sendMessage = async () => {
+    // 1. 입력값 검증 및 로딩 상태 확인
     if (!inputMessage.trim() || isLoading) return;
 
     const token = localStorage.getItem('accessToken');
     const userMsg = { role: 'user', content: inputMessage };
+
+    // 유저 메시지 즉시 반영
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
 
@@ -212,61 +218,64 @@ const RecommendPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/recommend/save`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/recommend/save`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            messages: updatedMessages,
+            inputMessage: currentInput,
+          }),
         },
-        body: JSON.stringify({
-          messages: updatedMessages,
-          inputMessage: currentInput,
-        }),
-      });
+      );
 
       const data = await response.json();
 
       if (data.success) {
+        // 2. AI 텍스트 응답 추가
         setMessages((prev) => [
           ...prev,
           { role: 'assistant', content: data.chatContent || data.reply },
         ]);
 
-        if (data.foods && data.foods.length > 0) {
-          const current = recommendedFoodsRef.current;
-          const incomingCount = data.foods.length;
-          const beforeCount = current.length;
-          const merged = mergeRecommendedFoods(data.foods, current);
-          const afterCount = merged.length;
-          const addedCount = Math.max(afterCount - beforeCount, 0);
+        // 3. 추천된 음식 카드 리스트 업데이트
+        const incomingFoods = Array.isArray(data.foods) ? data.foods : [];
+        if (incomingFoods.length > 0) {
+          // 프론트엔드 형식에 맞게 데이터 정제
+          const normalizedFoods = normalizeData(incomingFoods);
 
-          if (import.meta.env.DEV) {
-            console.info('[Recommend Debug] 챗봇 추천 수신', {
-              incomingCount,
-              beforeCount,
-              afterCount,
-              addedCount,
-              droppedDuringMerge: Math.max(incomingCount - addedCount, 0),
-              filtersBeforeReset: {
-                searchTerm,
-                finalSearchTerm,
-                selectedTags,
-                isFavoriteView,
-              },
-            });
-          }
+          setRecommendedFoods((prev) =>
+            mergeRecommendedFoods(normalizedFoods, prev),
+          );
 
-          setRecommendedFoods(merged);
-          // 챗봇 추천 직후에는 필터로 인해 카드가 숨겨지지 않도록 표시 조건 초기화
+          // 4. UI 편의성 조치: 필터 초기화 및 스크롤 이동
+          // 검색어나 태그 필터 때문에 새 카드가 안 보일 수 있으므로 초기화합니다.
           setSearchTerm('');
           setFinalSearchTerm('');
           setSelectedTags([]);
           setIsFavoriteView(false);
-          requestAnimationFrame(() => {
-            listScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-          });
+
+          // 리스트 영역 로딩 애니메이션 트리거
           triggerLoading();
+
+          // 약간의 지연 후 리스트 최상단으로 부드럽게 스크롤
+          setTimeout(() => {
+            listScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 150);
         }
+      } else {
+        // 백엔드 success가 false인 경우 처리
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: data.message || '추천 메뉴를 가져오지 못했습니다.',
+          },
+        ]);
       }
     } catch (error) {
       console.error('Chat API Error:', error);
