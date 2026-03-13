@@ -1312,12 +1312,12 @@ function NutritionGoalsCard({ selectedDate, data }) {
     const summary = data?.summary ?? {};
     const items = goals
         ? [
-              { label: '칼로리', current: Number(summary.calories) || 0, goal: Number(goals.targetCalories) || 1, unit: 'kcal', color: '#FF8243' },
-              { label: '탄수화물', current: Number(summary.carbs) || 0, goal: Number(goals.targetCarbohydrate) || 1, unit: 'g', color: '#FFA726' },
-              { label: '단백질', current: Number(summary.protein) || 0, goal: Number(goals.targetProtein) || 1, unit: 'g', color: '#66BB6A' },
-              { label: '지방', current: Number(summary.fat) || 0, goal: Number(goals.targetFat) || 1, unit: 'g', color: '#EF5350' },
-              { label: '당류', current: Number(summary.sugar) || 0, goal: Number(goals.targetSugars) || 1, unit: 'g', color: '#AB47BC' },
-          ]
+            { label: '칼로리', current: Number(summary.calories) || 0, goal: Number(goals.targetCalories) || 1, unit: 'kcal', color: '#FF8243' },
+            { label: '탄수화물', current: Number(summary.carbs) || 0, goal: Number(goals.targetCarbohydrate) || 1, unit: 'g', color: '#FFA726' },
+            { label: '단백질', current: Number(summary.protein) || 0, goal: Number(goals.targetProtein) || 1, unit: 'g', color: '#66BB6A' },
+            { label: '지방', current: Number(summary.fat) || 0, goal: Number(goals.targetFat) || 1, unit: 'g', color: '#EF5350' },
+            { label: '당류', current: Number(summary.sugar) || 0, goal: Number(goals.targetSugars) || 1, unit: 'g', color: '#AB47BC' },
+        ]
         : [];
 
     return (
@@ -1568,45 +1568,71 @@ export default function DailyLogPage() {
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#f5f7fa' }}>
-            {/* 상단 네비 */}
-            <Box
-                sx={{
-                    bgcolor: '#fff',
-                    borderBottom: '1px solid #e8ecf0',
-                    px: { xs: 2, md: 4 },
-                    py: 1.5,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 2,
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 100,
-                }}
-            >
-                <Box>
-                    <Typography fontWeight={800} fontSize="1.1rem" lineHeight={1.2}>
-                        일일 식단 기록
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                        Daily Log
-                    </Typography>
+            {/* 상단 타이틀 */}
+            <Box sx={{ px: { xs: 2, md: 4 }, mt: '14px' }}>
+                <Box
+                    sx={{
+                        position: 'relative',
+                        bgcolor: '#fff',
+                        borderRadius: 3,
+                        px: 3,
+                        py: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 2,
+                        overflow: 'hidden',
+                        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                        border: '1px solid #f0f4f8',
+                    }}
+                >
+                    {/* 배경 장식 */}
+                    <Box sx={{
+                        position: 'absolute', top: -20, right: -20,
+                        width: 100, height: 100, borderRadius: '50%',
+                        background: 'rgba(255,130,67,0.08)',
+                        pointerEvents: 'none',
+                    }} />
+                    <Box sx={{
+                        position: 'absolute', bottom: -30, right: 60,
+                        width: 80, height: 80, borderRadius: '50%',
+                        background: 'rgba(255,130,67,0.05)',
+                        pointerEvents: 'none',
+                    }} />
+
+                    {/* 아이콘 배지 */}
+                    <Box sx={{
+                        width: 44, height: 44, borderRadius: 2.5, flexShrink: 0,
+                        background: 'linear-gradient(135deg, #FF8243 0%, #F97316 100%)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 4px 12px rgba(255,130,67,0.3)',
+                    }}>
+                        <EditNote sx={{ color: '#fff', fontSize: 24 }} />
+                    </Box>
+
+                    <Box>
+                        <Typography fontWeight={800} fontSize="1.1rem" lineHeight={1.2} color="#1E2923">
+                            일일 식단 기록
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 500 }}>
+                            Daily Log
+                        </Typography>
+                    </Box>
+
+                    <Box sx={{ flexGrow: 1 }} />
+
+                    {isToday && totalCalories > 0 && (
+                        <Chip
+                            icon={
+                                <LocalFireDepartment
+                                    sx={{ fontSize: '16px !important', color: '#FF8243 !important' }}
+                                />
+                            }
+                            label={`오늘 ${totalCalories} kcal`}
+                            size="small"
+                            sx={{ bgcolor: '#fff3ed', color: '#E05A1F', fontWeight: 700, zIndex: 1 }}
+                        />
+                    )}
                 </Box>
-                <Box sx={{ flexGrow: 1 }} />
-                {isToday && totalCalories > 0 && (
-                    <Chip
-                        icon={
-                            <LocalFireDepartment
-                                sx={{
-                                    fontSize: '16px !important',
-                                    color: '#FF8243 !important',
-                                }}
-                            />
-                        }
-                        label={`오늘 ${totalCalories} kcal`}
-                        size="small"
-                        sx={{ bgcolor: '#fff3ed', color: '#E05A1F', fontWeight: 700 }}
-                    />
-                )}
             </Box>
 
             {/* 본문 */}
@@ -1622,7 +1648,7 @@ export default function DailyLogPage() {
                 }}
             >
                 {/* ── 왼쪽: 달력 패널 ── */}
-                <Box sx={{ width: { xs: '100%', md: 400, lg: 500 }, flexShrink: 0 }}>
+                <Box sx={{ width: { xs: '100%', md: '45%', lg: '48%' }, flexShrink: 0 }}>
                     <Paper
                         elevation={0}
                         sx={{ p: 2.5, borderRadius: 3, border: '1px solid #e8ecf0' }}
@@ -1641,7 +1667,7 @@ export default function DailyLogPage() {
                 </Box>
 
                 {/* ── 오른쪽: 타임라인 ── */}
-                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                <Box sx={{ flexGrow: 1, minWidth: 0 }} className='w-full'>
                     {/* 날짜 헤더 */}
                     <Box
                         sx={{ mb: 2.5, display: 'flex', alignItems: 'center', gap: 1.5 }}
@@ -1675,7 +1701,7 @@ export default function DailyLogPage() {
                     </Box>
 
                     {/* 타임라인 */}
-                    <Stack spacing={0}>
+                    <Stack spacing={0} className='w-full'>
                         {MEALS.map((meal, index) => (
                             <Box key={meal.key} sx={{ display: 'flex', gap: 2 }}>
                                 {/* 타임라인 인디케이터 */}
@@ -1717,7 +1743,7 @@ export default function DailyLogPage() {
 
                                 {/* 식사 카드 */}
                                 <Box
-                                    sx={{ flexGrow: 1, pb: index < MEALS.length - 1 ? 1.5 : 0 }}
+                                    sx={{ flexGrow: 1, width: '100%', pb: index < MEALS.length - 1 ? 1.5 : 0 }}
                                 >
                                     <MealCard
                                         meal={meal}
@@ -1733,7 +1759,7 @@ export default function DailyLogPage() {
                         {/* 기록 추가 영역 */}
                         <Box sx={{ display: 'flex', gap: 2, mt: 1.5 }}>
                             <Box sx={{ width: 20, flexShrink: 0 }} />
-                            <Box sx={{ flexGrow: 1 }}>
+                            <Box sx={{ flexGrow: 1, width: { xs: 'calc(100% - 36px)', xxs: '100%', lg: 'calc(100% - 36px)' } }}>
                                 <AddRecordCard
                                     onRefresh={handleRefreshData}
                                     userId={user?.id}

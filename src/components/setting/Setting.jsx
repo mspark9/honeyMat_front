@@ -205,7 +205,7 @@ function CheckboxGrid({ options, selected, onChange }) {
     );
   };
   return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1 }}>
       {options.map(({ key, label, Icon, color, bg }) => {
         const checked = selected.includes(key);
         return (
@@ -497,7 +497,7 @@ export default function Setting() {
 
   return (
     <div className="p-2 min-h-screen">
-      <div className="bg-[#F2F9F5] text-[#1E2923] w-full max-w-2xl mx-auto rounded-2xl border border-gray-100 p-6">
+      <div className="bg-[#F2F9F5] text-[#1E2923] w-full max-w-2xl mx-auto rounded-2xl border border-gray-100 p-[6px]">
         <h2 className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-3">
           환경설정
         </h2>
@@ -525,7 +525,7 @@ export default function Setting() {
           </Typography>
 
           {/* 프로필 사진 */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'center', sm: 'center' }, gap: { xs: 2, sm: 3 }, mb: 3 }}>
             <Box sx={{ position: 'relative' }}>
               <Avatar
                 src={profile.profileImage}
@@ -909,7 +909,7 @@ export default function Setting() {
                                     <FormControl
                                       key={key}
                                       size="small"
-                                      sx={{ minWidth: 120 }}
+                                      sx={{ width: 150 }}
                                     >
                                       <InputLabel>{fieldLabel}</InputLabel>
                                       <Select
@@ -960,7 +960,7 @@ export default function Setting() {
                                       InputLabelProps={{ shrink: true }}
                                       inputProps={{ step: 300 }}
                                       sx={{
-                                        maxWidth: 150,
+                                        width: 150,
                                         ...textFieldFocusStyle,
                                       }}
                                     />
@@ -981,6 +981,9 @@ export default function Setting() {
                   onClick={handleResetTypeSettings}
                   startIcon={<Restore />}
                   sx={{
+                    flex: { xs: 'none', sm: 1 },
+                    width: { xs: '100%', sm: 'auto' },
+                    height: 48,
                     borderColor: '#e2e8f0',
                     color: 'text.secondary',
                     '&:hover': { borderColor: '#94a3b8', bgcolor: '#f8fafc' },
@@ -995,6 +998,9 @@ export default function Setting() {
                   disabled={typeSettingsLoading || typeSettingsSaving}
                   startIcon={<Save />}
                   sx={{
+                    flex: { xs: 'none', sm: 1 },
+                    width: { xs: '100%', sm: 'auto' },
+                    height: 48,
                     bgcolor: '#FF8243',
                     '&:hover': { bgcolor: '#E05A1F' },
                   }}

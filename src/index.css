@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* 400px 이하 커스텀 브레이크포인트 */
+@custom-variant xxs (@media (max-width: 400px));
+
 :root {
   /* HoneyMat Brand Colors */
   --color-brand: #ff8243;
@@ -26,4 +29,7 @@ body {
   background-color: var(--color-background);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
+  /* width: 100%;
+  height: auto;
+  overflow: hidden; */
 }

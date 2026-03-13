@@ -17,7 +17,7 @@ const Layout = () => {
       </div>
 
       {/* 메인 콘텐츠 */}
-      <main className="flex-1 min-w-0 pt-14 px-[10px] pb-8 lg:pl-72 lg:pt-8 lg:pr-8 text-var(--color-text)">
+      <main className="flex-1 min-w-0 pt-14 pb-8 lg:pl-72 lg:pt-8 lg:pr-8 text-var(--color-text)">
         <div className="w-full">
           <Outlet />
         </div>
