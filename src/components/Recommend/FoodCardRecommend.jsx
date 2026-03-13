@@ -3,6 +3,7 @@ import { FaRegStar, FaStar } from 'react-icons/fa';
 import { TbTrashX } from 'react-icons/tb';
 import { useNavigate } from 'react-router-dom';
 import { MdOutlineHorizontalRule } from 'react-icons/md';
+import { api } from '../../api/auth.js';
 
 const FoodCardRecommend = ({
   food,
@@ -29,49 +30,18 @@ const FoodCardRecommend = ({
 
       setIsLoading(true);
       try {
-        const apiKey =
-          import.meta.env?.VITE_OPENAI_API_KEY ||
-          process?.env?.REACT_APP_OPENAI_API_KEY;
+        const data = await api.post('/api/ai/food-tags', {
+          name: food.name,
+          kcal: food.kcal,
+          carbs: food.carbs,
+          protein: food.protein,
+          fat: food.fat,
+          sugar: food.sugar,
+        });
 
-        if (!apiKey) {
-          setIsLoading(false);
-          return;
-        }
-
-        const response = await fetch(
-          'https://api.openai.com/v1/chat/completions',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-              model: 'gpt-3.5-turbo',
-              messages: [
-                {
-                  role: 'user',
-                  content: `음식명: ${food.name}, 칼로리: ${food.kcal}, 탄수: ${food.carbs}, 단백질: ${food.protein}, 지방: ${food.fat}, 당: ${food.sugar}`,
-                },
-                {
-                  role: 'assistant',
-                  content:
-                    '당신은 영양사입니다. 영양성분 데이터를 보고 [#고단백, #다이어트, #비건, #저탄수, #0kcal, #저당, #과일, #저지방, #고지방, #고칼로리, #고당] 중 적합한 태그를 골라 JSON 배열 형태로만 응답하세요. 예: ["#고단백"]. 해당 없으면 [] 반환.',
-                },
-              ],
-              temperature: 0.3,
-            }),
-          },
-        );
-
-        const data = await response.json();
-
-        if (data.choices?.[0]?.message?.content) {
-          const aiTags = JSON.parse(data.choices[0].message.content);
-          setTags(aiTags);
-          // 부모가 관리하는 food 객체의 tags 속성에 AI 태그 직접 할당
-          food.tags = aiTags;
-        }
+        const aiTags = Array.isArray(data.tags) ? data.tags : [];
+        setTags(aiTags);
+        food.tags = aiTags;
       } catch (error) {
         console.error('AI 태그 생성 실패:', error);
       } finally {

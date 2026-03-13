@@ -12,6 +12,7 @@ import {
   getNutritionGoals,
   checkDeficiency,
 } from '../../api/nutrition.js';
+import { api } from '../../api/auth.js';
 import {
   startOfWeek,
   endOfWeek,
@@ -500,68 +501,11 @@ const ReportPage = () => {
       console.error('AI review cache read error:', error);
     }
 
-    const apiKey =
-      import.meta.env?.VITE_OPENAI_API_KEY ||
-      process?.env?.REACT_APP_OPENAI_API_KEY;
-
-    if (!apiKey) {
-      const fallback = buildFallbackReview();
-      setAiReview({
-        review: fallback.review,
-        improvementPoints: fallback.improvementPoints,
-      });
-      setFoodList([]);
-      try {
-        localStorage.setItem(
-          aiCacheStorageKey,
-          JSON.stringify({
-            signature: aiNutritionSignature,
-            review: fallback.review,
-            improvementPoints: fallback.improvementPoints,
-            foodList: [],
-          }),
-        );
-      } catch (error) {
-        console.error('AI review cache write error:', error);
-      }
-      return;
-    }
-
-    const controller = new AbortController();
-
     const fetchAiReview = async () => {
       setIsAiLoading(true);
       try {
-        const response = await fetch(
-          'https://api.openai.com/v1/chat/completions',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${apiKey}`,
-            },
-            signal: controller.signal,
-            body: JSON.stringify({
-              model: 'gpt-4o-mini',
-              temperature: 0.4,
-              messages: [
-                {
-                  role: 'system',
-                  content:
-                    '당신은 사용자에게 친절하게 식단 피드백을 주는 영양사다. 응답은 반드시 JSON 객체 하나로만 반환한다.',
-                },
-                {
-                  role: 'user',
-                  content: `아래 리포트 데이터를 기반으로 주간 리뷰를 작성해줘.\n\n데이터: ${JSON.stringify(aiPayload)}\n\n반환 형식(JSON만):\n{\n  "review": "2문장 이내 한글 리뷰",\n  "improvementPoints": ["개선 포인트 1", "개선 포인트 2", "개선 포인트 3"],\n  "recommendedFoods": [\n    {\n      "name": "음식명",\n      "description": "추천 이유 1문장",\n      "kcal": 0,\n      "carbs": 0,\n      "protein": 0,\n      "fat": 0,\n      "sugar": 0,\n      "tags": ["#고단백"]\n    }\n  ]\n}\n\n규칙:\n- review는 과도한 과장 없이 데이터 기반으로 작성\n- improvementPoints는 정확히 3개\n- recommendedFoods는 2~3개\n- tags는 #으로 시작`,
-                },
-              ],
-            }),
-          },
-        );
-
-        const data = await response.json();
-        const content = data?.choices?.[0]?.message?.content;
-        const parsed = parseAiJson(content);
+        const data = await api.post('/api/ai/report-review', aiPayload);
+        const parsed = parseAiJson(data?.content);
 
         if (!parsed) {
           const fallback = buildFallbackReview();
@@ -614,38 +558,32 @@ const ReportPage = () => {
           console.error('AI review cache write error:', error);
         }
       } catch (error) {
-        if (error?.name !== 'AbortError') {
-          const fallback = buildFallbackReview();
-          setAiReview({
-            review: fallback.review,
-            improvementPoints: fallback.improvementPoints,
-          });
-          setFoodList([]);
-          try {
-            localStorage.setItem(
-              aiCacheStorageKey,
-              JSON.stringify({
-                signature: aiNutritionSignature,
-                review: fallback.review,
-                improvementPoints: fallback.improvementPoints,
-                foodList: [],
-              }),
-            );
-          } catch (cacheError) {
-            console.error('AI review cache write error:', cacheError);
-          }
-          console.error('AI review fetch error:', error);
+        const fallback = buildFallbackReview();
+        setAiReview({
+          review: fallback.review,
+          improvementPoints: fallback.improvementPoints,
+        });
+        setFoodList([]);
+        try {
+          localStorage.setItem(
+            aiCacheStorageKey,
+            JSON.stringify({
+              signature: aiNutritionSignature,
+              review: fallback.review,
+              improvementPoints: fallback.improvementPoints,
+              foodList: [],
+            }),
+          );
+        } catch (cacheError) {
+          console.error('AI review cache write error:', cacheError);
         }
+        console.error('AI review fetch error:', error);
       } finally {
-        if (!controller.signal.aborted) {
-          setIsAiLoading(false);
-        }
+        setIsAiLoading(false);
       }
     };
 
     fetchAiReview();
-
-    return () => controller.abort();
   }, [
     goals,
     dailyData,
@@ -658,42 +596,14 @@ const ReportPage = () => {
   ]);
 
   const handleResetRecommendations = async () => {
-    const apiKey =
-      import.meta.env?.VITE_OPENAI_API_KEY ||
-      process?.env?.REACT_APP_OPENAI_API_KEY;
-    if (!apiKey) return;
-
     setIsFoodListLoading(true);
     try {
-      const response = await fetch(
-        'https://api.openai.com/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            temperature: 0.8,
-            messages: [
-              {
-                role: 'system',
-                content:
-                  '당신은 식단 추천 영양사다. 응답은 JSON 객체 하나로만 반환한다.',
-              },
-              {
-                role: 'user',
-                content: `아래 리포트 데이터를 바탕으로 추천 식단만 새로 2~3개 생성해줘.\n리뷰/개선포인트는 이미 확정되어 있으니 바꾸지 말고 추천 식단만 다양하게 바꿔줘.\n\n현재 리뷰: ${aiReview.review}\n현재 개선포인트: ${JSON.stringify(aiReview.improvementPoints)}\n데이터: ${JSON.stringify(aiPayload)}\n\n반환 형식(JSON만):\n{\n  "recommendedFoods": [\n    {\n      "name": "음식명",\n      "description": "추천 이유 1문장",\n      "kcal": 0,\n      "carbs": 0,\n      "protein": 0,\n      "fat": 0,\n      "sugar": 0,\n      "tags": ["#고단백"]\n    }\n  ]\n}`,
-              },
-            ],
-          }),
-        },
-      );
-
-      const data = await response.json();
-      const content = data?.choices?.[0]?.message?.content;
-      const parsed = parseAiJson(content);
+      const data = await api.post('/api/ai/recommend-foods', {
+        aiPayload,
+        review: aiReview.review,
+        improvementPoints: aiReview.improvementPoints,
+      });
+      const parsed = parseAiJson(data?.content);
       const recommendedFoods = Array.isArray(parsed)
         ? parsed
         : parsed?.recommendedFoods;
