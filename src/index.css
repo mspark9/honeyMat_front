@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+:root {
+  /* HoneyMat Brand Colors */
+  --color-brand: #ff8243;
+  --color-brand-hover: #e6733a;
+  --color-background: #f2f9f5;
+  --color-text: #1e2923;
+  --color-text-muted: #4a5d52;
+  --color-white: #ffffff;
+  --color-border: #d4e5de;
+  --color-sidebar-bg: #ffffff;
+  --border-radius: 12px;
+  --sidebar-width: 240px;
+}
+
+/* * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+} */
+
+body {
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui,
+    "Segoe UI", Roboto, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}

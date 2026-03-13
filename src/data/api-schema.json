@@ -1,0 +1,36 @@
+{
+  "apis": {
+    "1_auto_calorie": {
+      "description": "음식 이름으로 칼로리 자동 조회",
+      "request": {
+        "food_name": "고구마"
+      },
+      "response": {
+        "calories": 128
+      }
+    },
+    "2_create_item": {
+      "description": "식단 아이템 생성 및 영양정보 반환",
+      "request": {
+        "food_name": "고구마",
+        "calories": 128,
+        "meal_type": "breakfast"
+      },
+      "response": {
+        "food_name": "고구마",
+        "meal_type": "breakfast",
+        "calories": 128,
+        "carbs": 30,
+        "protein": 1.6,
+        "fat": 0.1,
+        "sugar": 4.2
+      }
+    }
+  },
+  "meal_types": {
+    "breakfast": "아침",
+    "lunch": "점심",
+    "dinner": "저녁",
+    "snack": "간식"
+  }
+}
