@@ -77,7 +77,7 @@ const TopBar = () => {
           onClick={() => { setMenuOpen(false); navigate('/home'); }}
           className="flex items-center gap-2"
         >
-          <img src="/logo1.png" alt="HoneyMat" className="h-9 w-auto object-contain" />
+          <img src="/logo1.png" alt="HoneyMat" className="h-9 w-auto object-contain rounded-[8px]" />
           <span className="text-lg font-bold text-[#f2f9f5]">HoneyMat</span>
         </button>
 

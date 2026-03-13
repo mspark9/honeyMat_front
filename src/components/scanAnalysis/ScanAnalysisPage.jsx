@@ -323,7 +323,7 @@ const App = () => {
 
   return (
     <div className=" w-full bg-[#F2F9F5] flex flex-col items-center font-sans text-[#1E2923]">
-      <header className="w-full max-w-lg mb-3">
+      <header className="w-[calc(100%-24px)] max-w-lg mb-3 mt-[22px] mx-[12px] lg:w-full lg:mx-0 lg:mt-0">
         <div className="relative bg-linear-to-br from-white via-orange-50/30 to-white rounded-3xl p-5 shadow-lg border border-orange-100/50 overflow-hidden">
           {/* 배경 장식 */}
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-linear-to-br from-[#FF8243]/20 to-transparent rounded-full blur-2xl" />
@@ -394,7 +394,7 @@ const App = () => {
               />
             </div>
 
-            <div className="bg-[#FF8243] p-5 rounded-3xl flex gap-4 items-center shadow-md">
+            <div className="bg-gradient-to-br from-[#FF8243] to-[#F97316] p-5 rounded-3xl flex gap-4 items-center shadow-xl shadow-orange-300/50">
               <Info className="text-white shrink-0" size={24} />
               <p className="text-[0.95rem] text-white font-medium leading-relaxed">
                 AI가 사진 속 음식의 이름과 무게를 분석하여 식단의

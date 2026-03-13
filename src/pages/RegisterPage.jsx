@@ -125,7 +125,7 @@ function CheckboxGrid({ options, selected, onChange }) {
         );
     };
     return (
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1 }}>
             {options.map(({ key, label, Icon, color, bg }) => {
                 const checked = selected.includes(key);
                 return (
@@ -387,8 +387,8 @@ export default function RegisterPage() {
                                     sx={{ gap: 1 }}
                                 >
                                     {[
-                                        { value: 'male', label: '남성', Icon: Male, activeColor: '#5C6BC0', activeBg: '#e8eaf6' },
-                                        { value: 'female', label: '여성', Icon: Female, activeColor: '#EC407A', activeBg: '#fce4ec' },
+                                        { value: 'male', label: '남성', Icon: Male, activeColor: '#FF8243', activeBg: '#FFF0E8' },
+                                        { value: 'female', label: '여성', Icon: Female, activeColor: '#FF8243', activeBg: '#FFF0E8' },
                                     ].map(({ value, label, Icon, activeColor, activeBg }) => {
                                         const isActive = profile.gender === value;
                                         return (
@@ -402,6 +402,8 @@ export default function RegisterPage() {
                                                     color: isActive ? activeColor : 'text.secondary',
                                                     fontWeight: isActive ? 700 : 400,
                                                     gap: 0.8,
+                                                    '&.Mui-selected': { bgcolor: activeBg, color: activeColor },
+                                                    '&.Mui-selected:hover': { bgcolor: activeBg },
                                                     '&:hover': { bgcolor: activeBg, borderColor: `${activeColor} !important` },
                                                     transition: 'all 0.15s',
                                                 }}
@@ -415,7 +417,7 @@ export default function RegisterPage() {
                             </Box>
 
                             {/* 나이대 */}
-                            <FormControl fullWidth sx={{ mb: 3 }}>
+                            <FormControl fullWidth sx={{ mb: 3, ...textFieldFocusStyle }}>
                                 <InputLabel>나이대</InputLabel>
                                 <Select
                                     value={profile.ageGroup}
