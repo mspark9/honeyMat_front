@@ -207,7 +207,7 @@ function HomePage() {
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', lg: '1fr 2fr' },
         gap: 2,
-        height: 'calc(100vh - 4rem)',
+        height: { xs: '100%', lg: 'calc(100vh - 4rem)' },
         minHeight: 0,
         overflow: { xs: 'auto', lg: 'hidden' },
         p: 2,
@@ -224,7 +224,7 @@ function HomePage() {
           display: 'flex',
           flexDirection: 'column',
           minHeight: 0,
-          overflow: 'hidden',
+          overflow: { xs: 'visible', lg: 'hidden' },
         }}
       >
         <Typography fontWeight={700} fontSize="1.1rem" mb={1}>
@@ -235,7 +235,7 @@ function HomePage() {
         <Box
           sx={{
             flex: 1,
-            minHeight: 0,
+            minHeight: { xs: 'auto', lg: 0 },
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -460,10 +460,11 @@ function HomePage() {
             sx={{
               flex: 1,
               minHeight: 0,
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
+              display: 'flex',
+              flexDirection: 'row',
               gap: 2,
               pb: 1,
+              overflowX: 'scroll',
             }}
           >
             {(todayRecommend.foods || []).slice(0, 3).map((food) => (
@@ -538,6 +539,7 @@ function RecommendPreviewCard({ food }) {
         bgcolor: '#f8fafc',
         border: '1px solid #e8ecf0',
         textDecoration: 'none',
+        minWidth: 183,
         transition: 'all 0.2s',
         '&:hover': {
           bgcolor: 'rgba(255, 130, 67, 0.05)',
