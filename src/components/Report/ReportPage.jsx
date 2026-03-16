@@ -505,9 +505,8 @@ const ReportPage = () => {
       setIsAiLoading(true);
       try {
         const data = await api.post('/api/ai/report-review', aiPayload);
-        const parsed = parseAiJson(data?.content);
 
-        if (!parsed) {
+        if (!data?.success) {
           const fallback = buildFallbackReview();
           setAiReview({
             review: fallback.review,
@@ -530,14 +529,14 @@ const ReportPage = () => {
           return;
         }
 
-        const safePoints = Array.isArray(parsed.improvementPoints)
-          ? parsed.improvementPoints.filter(Boolean).slice(0, 3)
+        const safePoints = Array.isArray(data.improvementPoints)
+          ? data.improvementPoints.filter(Boolean).slice(0, 3)
           : [];
-        const safeFoods = normalizeRecommendedFoods(parsed.recommendedFoods);
+        const safeFoods = normalizeRecommendedFoods(data.recommendedFoods);
 
         setAiReview({
           review:
-            parsed.review ||
+            data.review ||
             '주간 리포트 분석 결과를 기반으로 한 AI 리뷰가 준비되었습니다.',
           improvementPoints: safePoints,
         });
@@ -548,7 +547,7 @@ const ReportPage = () => {
             JSON.stringify({
               signature: aiNutritionSignature,
               review:
-                parsed.review ||
+                data.review ||
                 '주간 리포트 분석 결과를 기반으로 한 AI 리뷰가 준비되었습니다.',
               improvementPoints: safePoints,
               foodList: safeFoods,
@@ -599,15 +598,11 @@ const ReportPage = () => {
     setIsFoodListLoading(true);
     try {
       const data = await api.post('/api/ai/recommend-foods', {
-        aiPayload,
-        review: aiReview.review,
-        improvementPoints: aiReview.improvementPoints,
+        currentReview: aiReview.review,
+        weeklyAverageIntake: aiPayload.weeklyAverageIntake,
+        nutritionGoals: aiPayload.nutritionGoals,
       });
-      const parsed = parseAiJson(data?.content);
-      const recommendedFoods = Array.isArray(parsed)
-        ? parsed
-        : parsed?.recommendedFoods;
-      const refreshedFoods = normalizeRecommendedFoods(recommendedFoods);
+      const refreshedFoods = normalizeRecommendedFoods(data?.recommendedFoods);
 
       if (refreshedFoods.length) {
         setFoodList(refreshedFoods);
