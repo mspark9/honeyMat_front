@@ -45,6 +45,7 @@ const calculateWeeklyAverageIntake = (records) => {
 
 const ReportPage = () => {
   const reportRef = useRef(null);
+  const pdfMaskTimeoutRef = useRef(null);
   const { profile } = useProfile();
 
   // 상태 관리
@@ -52,6 +53,7 @@ const ReportPage = () => {
     typeof window !== 'undefined' ? window.innerWidth : 1920,
   );
   const [isPdfMode, setIsPdfMode] = useState(false);
+  const [isPdfMaskVisible, setIsPdfMaskVisible] = useState(false);
   const [dailyData, setDailyData] = useState([]);
   const [lastWeekData, setLastWeekData] = useState([]);
   const [goals, setGoals] = useState(null);
@@ -96,6 +98,15 @@ const ReportPage = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(
+    () => () => {
+      if (pdfMaskTimeoutRef.current) {
+        clearTimeout(pdfMaskTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   // 데이터 페칭
   useEffect(() => {
@@ -270,6 +281,33 @@ const ReportPage = () => {
     ];
   }, [dailyData, goals]);
 
+  const weeklyAverageIntake = useMemo(
+    () => calculateWeeklyAverageIntake(dailyData),
+    [dailyData],
+  );
+
+  const aiReviewInputSignature = useMemo(
+    () =>
+      JSON.stringify({
+        weekStart: startDateStr,
+        weekEnd: endDateStr,
+        profileNickname: nicknameText,
+        weeklyAverageScore: averageScore,
+        scoreDiffFromLastWeek: diffLastWeek,
+        weeklyAverageIntake,
+        nutritionGoals: goals,
+      }),
+    [
+      averageScore,
+      diffLastWeek,
+      endDateStr,
+      goals,
+      nicknameText,
+      startDateStr,
+      weeklyAverageIntake,
+    ],
+  );
+
   const lineData = dailyData.map((item) => ({
     day: item.date.slice(5, 10).replace('-', '/'),
     kcal: item.kcal,
@@ -279,12 +317,112 @@ const ReportPage = () => {
     sugars: item.sugars,
   }));
 
+  useEffect(() => {
+    if (!dailyData.length || !goals) return;
+
+    const fallbackReview = {
+      review:
+        '이번 주 리포트 데이터를 바탕으로 AI 영양사 리뷰를 준비 중입니다.',
+      improvementPoints: [],
+    };
+
+    const loadAiReview = async () => {
+      setIsAiLoading(true);
+      setIsFoodListLoading(true);
+      try {
+        const cachedRaw = localStorage.getItem(aiCacheStorageKey);
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw);
+          const isSameNutritionState =
+            cached?.inputSignature === aiReviewInputSignature;
+          const hasMeaningfulCache =
+            cached?.review &&
+            (cached.review !== fallbackReview.review ||
+              (Array.isArray(cached.improvementPoints) &&
+                cached.improvementPoints.length > 0) ||
+              (Array.isArray(cached.recommendedFoods) &&
+                cached.recommendedFoods.length > 0));
+
+          if (hasMeaningfulCache && isSameNutritionState) {
+            setAiReview({
+              review: cached.review,
+              improvementPoints: Array.isArray(cached.improvementPoints)
+                ? cached.improvementPoints
+                : [],
+            });
+            setFoodList(
+              Array.isArray(cached.recommendedFoods)
+                ? cached.recommendedFoods
+                : [],
+            );
+            return;
+          }
+          localStorage.removeItem(aiCacheStorageKey);
+        }
+
+        const payload = {
+          profileNickname: nicknameText,
+          weeklyAverageScore: averageScore,
+          scoreDiffFromLastWeek: diffLastWeek,
+          weeklyAverageIntake,
+          nutritionGoals: goals,
+        };
+
+        const data = await api.post('/api/ai/report-review', payload);
+        const nextReview = {
+          review: data?.review || fallbackReview.review,
+          improvementPoints: Array.isArray(data?.improvementPoints)
+            ? data.improvementPoints
+            : [],
+        };
+        const nextFoods = Array.isArray(data?.recommendedFoods)
+          ? data.recommendedFoods
+          : [];
+
+        setAiReview(nextReview);
+        setFoodList(nextFoods);
+        localStorage.setItem(
+          aiCacheStorageKey,
+          JSON.stringify({
+            ...nextReview,
+            recommendedFoods: nextFoods,
+            weekStart: startDateStr,
+            weekEnd: endDateStr,
+            inputSignature: aiReviewInputSignature,
+            updatedAt: Date.now(),
+          }),
+        );
+      } catch (error) {
+        console.error(error);
+        setAiReview(fallbackReview);
+        setFoodList([]);
+      } finally {
+        setIsAiLoading(false);
+        setIsFoodListLoading(false);
+      }
+    };
+
+    loadAiReview();
+  }, [
+    aiCacheStorageKey,
+    aiReviewInputSignature,
+    aiReviewRefreshToken,
+    averageScore,
+    dailyData,
+    diffLastWeek,
+    endDateStr,
+    goals,
+    nicknameText,
+    startDateStr,
+    weeklyAverageIntake,
+  ]);
+
   const handleResetRecommendations = async () => {
     setIsFoodListLoading(true);
     try {
       const data = await api.post('/api/ai/recommend-foods', {
         currentReview: aiReview.review,
-        weeklyAverageIntake: calculateWeeklyAverageIntake(dailyData),
+        weeklyAverageIntake,
         nutritionGoals: goals,
       });
       setFoodList(data?.recommendedFoods || []);
@@ -303,6 +441,15 @@ const ReportPage = () => {
   // PDF 저장 핸들러
   const handleDownloadPdf = async () => {
     if (reportRef.current === null) return;
+    setIsPdfMaskVisible(true);
+    if (pdfMaskTimeoutRef.current) {
+      clearTimeout(pdfMaskTimeoutRef.current);
+    }
+    pdfMaskTimeoutRef.current = setTimeout(() => {
+      setIsPdfMaskVisible(false);
+      pdfMaskTimeoutRef.current = null;
+    }, 8000);
+
     setIsPdfMode(true);
     const originalStyle = reportRef.current.style.cssText;
     const gridContainer = reportRef.current.querySelector(
@@ -648,12 +795,23 @@ const ReportPage = () => {
             <div className="p-4 pt-16">
               <AIReviewSection
                 aiReview={aiReview}
+                isAiLoading={isAiLoading}
+                isFoodListLoading={isFoodListLoading}
                 foodList={foodList}
                 onResetRecommendations={handleResetRecommendations}
                 onRefreshAiReport={handleRefreshAiReport}
+                isAtMost600={isAtMost600}
               />
             </div>
           </div>
+        </div>
+      )}
+
+      {isPdfMaskVisible && (
+        <div className="fixed inset-0 z-250 bg-[#F2F9F5] flex items-center justify-center">
+          <p className="text-[#FF8243] text-2xl font-extrabold tracking-wide">
+            PDF 저장 중 ...
+          </p>
         </div>
       )}
 
@@ -661,6 +819,7 @@ const ReportPage = () => {
       <div className="flex justify-center mt-6 mb-10">
         <button
           onClick={handleDownloadPdf}
+          disabled={isPdfMaskVisible}
           className="bg-[#FF8243] text-white px-8 py-3 rounded-lg font-bold shadow-lg active:scale-95 transition-all"
         >
           PDF로 저장

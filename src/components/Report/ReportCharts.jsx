@@ -140,7 +140,7 @@ export const WeeklyLineChart = ({
         key={dataKey}
         yAxisId="left"
         dataKey={dataKey}
-        name="칼로리"
+        name="kcal"
         legendType="rect"
         barSize={18}
         fill={color}
@@ -159,7 +159,7 @@ export const WeeklyLineChart = ({
     { dataKey: 'protein', value: '단백질', color: '#66BB6A', type: 'circle' },
     { dataKey: 'fat', value: '지방', color: '#EF5350', type: 'circle' },
     { dataKey: 'sugars', value: '당', color: '#AB47BC', type: 'circle' },
-    { dataKey: 'kcal', value: '칼로리', color: '#ff9058', type: 'square' },
+    { dataKey: 'kcal', value: 'kcal', color: '#ff9058', type: 'square' },
   ].map((item) => ({
     ...item,
     inactive: !activeSeries.includes(item.dataKey),
