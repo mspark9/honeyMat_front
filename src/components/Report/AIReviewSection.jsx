@@ -10,6 +10,7 @@ const AIReviewSection = ({
   foodList,
   onResetRecommendations,
   onRefreshAiReport,
+  isAtMost600 = false,
 }) => {
   return (
     <div className="bg-white py-5 px-5 rounded-2xl shadow-sm border border-gray-100">
@@ -27,7 +28,11 @@ const AIReviewSection = ({
               <div className="min-h-[60px] flex items-center justify-center"></div>
             </div>
           </div>
-          <div className="mt-5 mb-5 space-y-2 p-3 bg-[#F3FBF5] border border-[#D7EEDB] rounded-xl relative overflow-hidden min-h-[175px] max-h-[175px]">
+          <div
+            className={`mt-5 mb-5 space-y-2 p-3 bg-[#F3FBF5] border border-[#D7EEDB] rounded-xl relative overflow-hidden ${
+              isAtMost600 ? 'min-h-[195px] max-h-[195px]' : 'min-h-[175px] max-h-[175px]'
+            }`}
+          >
             <h4 className="font-bold text-[15.5px] text-gray-900 mb-3 pl-3 pb-2 border-b border-[#CFE5D4]">
               개선 포인트
             </h4>
@@ -70,7 +75,11 @@ const AIReviewSection = ({
               </p>
             </div>
           </div>
-          <div className="mt-5 mb-5 space-y-2 p-3 bg-[#F3FBF5] border border-[#D7EEDB] rounded-xl relative overflow-hidden min-h-[175px] max-h-[175px]">
+          <div
+            className={`mt-5 mb-5 space-y-2 p-3 bg-[#F3FBF5] border border-[#D7EEDB] rounded-xl relative overflow-hidden ${
+              isAtMost600 ? 'min-h-[195px] max-h-[195px]' : 'min-h-[175px] max-h-[175px]'
+            }`}
+          >
             <h4 className="font-bold text-[15px] text-gray-900 mb-3 pl-3 pb-2 border-b border-[#CFE5D4]">
               개선 포인트
             </h4>
