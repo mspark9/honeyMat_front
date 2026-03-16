@@ -16,7 +16,7 @@ import {
   Bar,
 } from 'recharts';
 
-// 방사형 차트
+// 1. 방사형 차트 (NutrientRadarChart)
 export const NutrientRadarChart = ({
   data,
   angleTickFontSize = 14,
@@ -65,7 +65,7 @@ export const NutrientRadarChart = ({
   );
 };
 
-// 7일간 변화 추이
+// 2. 7일간 변화 추이 차트 (WeeklyLineChart)
 export const WeeklyLineChart = ({
   data,
   maximizeForSmallScreen = false,
@@ -112,7 +112,7 @@ export const WeeklyLineChart = ({
 
   const axisFontSize = compactTextForNarrow ? 11 : 12;
 
-  // 라인 생성 헬퍼 함수 (탄단지당)
+  // 라인 생성 헬퍼 함수
   const createLine = (dataKey, color, label) => {
     const isActive = activeSeries.includes(dataKey);
     return (
@@ -132,7 +132,7 @@ export const WeeklyLineChart = ({
     );
   };
 
-  // 막대 생성 헬퍼 함수 (칼로리)
+  // 막대 생성 헬퍼 함수 (칼로리 전용)
   const createBar = (dataKey, color) => {
     const isActive = activeSeries.includes(dataKey);
     return (
@@ -140,7 +140,7 @@ export const WeeklyLineChart = ({
         key={dataKey}
         yAxisId="left"
         dataKey={dataKey}
-        name="kcal"
+        name="칼로리"
         legendType="rect"
         barSize={18}
         fill={color}
@@ -159,19 +159,17 @@ export const WeeklyLineChart = ({
     { dataKey: 'protein', value: '단백질', color: '#66BB6A', type: 'circle' },
     { dataKey: 'fat', value: '지방', color: '#EF5350', type: 'circle' },
     { dataKey: 'sugars', value: '당', color: '#AB47BC', type: 'circle' },
-    {
-      dataKey: 'kcal',
-      value: '칼로리',
-      color: '#ff9058',
-      type: 'square',
-    },
+    { dataKey: 'kcal', value: '칼로리', color: '#ff9058', type: 'square' },
   ].map((item) => ({
     ...item,
     inactive: !activeSeries.includes(item.dataKey),
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={maximizeForSmallScreen ? 380 : 343}>
+    <ResponsiveContainer
+      width="100%"
+      height={maximizeForSmallScreen ? 380 : 343}
+    >
       <ComposedChart
         data={data}
         margin={
@@ -219,7 +217,7 @@ export const WeeklyLineChart = ({
           onClick={handleLegendClick}
           formatter={renderCustomLegendText}
           payload={legendPayload}
-          iconSize={maximizeForSmallScreen ? 10 : 12} // ★ 중요: 아이콘의 가로세로 길이를 동일하게 고정 (정사각형화)
+          iconSize={maximizeForSmallScreen ? 10 : 12}
           wrapperStyle={{
             paddingTop: maximizeForSmallScreen ? '6px' : '15px',
             display: 'flex',
@@ -227,7 +225,7 @@ export const WeeklyLineChart = ({
             alignItems: 'center',
           }}
         />
-        {createBar('kcal', '#ff9058', 'kcal')}
+        {createBar('kcal', '#ff9058')}
         {createLine('carbohydrate', '#FFA726', '탄수화물')}
         {createLine('protein', '#66BB6A', '단백질')}
         {createLine('fat', '#EF5350', '지방')}

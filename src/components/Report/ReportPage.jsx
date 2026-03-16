@@ -3,16 +3,12 @@ import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { FaPlus, FaMinus, FaPlusMinus } from 'react-icons/fa6';
 import { PiChefHat } from 'react-icons/pi';
-import { Loader2, Stethoscope } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { NutrientRadarChart, WeeklyLineChart } from './ReportCharts';
 import ReportCards from './ReportCards';
 import AIReviewSection from './AIReviewSection';
-import { useProfile } from '../../contexts/ProfileContext'; // 닉네임 사용을 위해 추가
-import {
-  getDailySummaries,
-  getNutritionGoals,
-  checkDeficiency,
-} from '../../api/nutrition.js';
+import { useProfile } from '../../contexts/ProfileContext';
+import { getDailySummaries, getNutritionGoals } from '../../api/nutrition.js';
 import { api } from '../../api/auth.js';
 import {
   startOfWeek,
@@ -25,15 +21,8 @@ import {
 
 const calculateWeeklyAverageIntake = (records) => {
   if (!records.length) {
-    return {
-      calories: 0,
-      carbohydrate: 0,
-      protein: 0,
-      fat: 0,
-      sugars: 0,
-    };
+    return { calories: 0, carbohydrate: 0, protein: 0, fat: 0, sugars: 0 };
   }
-
   const totals = records.reduce(
     (acc, cur) => {
       acc.calories += Number(cur.kcal) || 0;
@@ -45,7 +34,6 @@ const calculateWeeklyAverageIntake = (records) => {
     },
     { calories: 0, carbohydrate: 0, protein: 0, fat: 0, sugars: 0 },
   );
-
   return {
     calories: Math.round(totals.calories / 7),
     carbohydrate: Math.round(totals.carbohydrate / 7),
@@ -57,12 +45,15 @@ const calculateWeeklyAverageIntake = (records) => {
 
 const ReportPage = () => {
   const reportRef = useRef(null);
-  const { profile } = useProfile(); // 프로필 정보(닉네임) 가져오기
+  const { profile } = useProfile();
+
+  // 상태 관리
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth : 1920,
   );
+  const [isPdfMode, setIsPdfMode] = useState(false);
   const [dailyData, setDailyData] = useState([]);
-  const [lastWeekData, setLastWeekData] = useState([]); // 변화량 계산용
+  const [lastWeekData, setLastWeekData] = useState([]);
   const [goals, setGoals] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [foodList, setFoodList] = useState([]);
@@ -76,7 +67,7 @@ const ReportPage = () => {
   const [isAiReviewExpandedAt1800, setIsAiReviewExpandedAt1800] =
     useState(false);
 
-  // 현재 주 및 지난 주 날짜 계산
+  // 날짜 설정
   const today = new Date();
   const startDateStr = format(
     startOfWeek(today, { weekStartsOn: 1 }),
@@ -86,7 +77,6 @@ const ReportPage = () => {
     endOfWeek(today, { weekStartsOn: 1 }),
     'yyyy-MM-dd',
   );
-
   const lastWeekStart = format(
     subWeeks(startOfWeek(today, { weekStartsOn: 1 }), 1),
     'yyyy-MM-dd',
@@ -95,31 +85,28 @@ const ReportPage = () => {
     subWeeks(endOfWeek(today, { weekStartsOn: 1 }), 1),
     'yyyy-MM-dd',
   );
+
   const aiCacheStorageKey = useMemo(() => {
     const userKey = profile?.id || profile?.nickname || 'anonymous';
     return `report-ai-review:${userKey}`;
   }, [profile?.id, profile?.nickname]);
 
   useEffect(() => {
-    const handleResize = () => {
-      setViewportWidth(window.innerWidth);
-    };
+    const handleResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // 데이터 페칭
   useEffect(() => {
     const fetchReport = async () => {
       setIsLoading(true);
       try {
-        // 이번 주 데이터, 지난 주 데이터, 영양 목표를 한 번에 호출
         const [summaryRes, lastWeekRes, goalRes] = await Promise.all([
           getDailySummaries(startDateStr, endDateStr),
           getDailySummaries(lastWeekStart, lastWeekEnd),
           getNutritionGoals(),
         ]);
-
-        // 이번 주 7일 데이터 포맷팅
         const allDays = eachDayOfInterval({
           start: new Date(startDateStr),
           end: new Date(endDateStr),
@@ -127,12 +114,10 @@ const ReportPage = () => {
 
         const formattedData = allDays.map((dateStr) => {
           const targetDate = new Date(dateStr);
-          const found = summaryRes.data.find((item) => {
-            const itemDate = new Date(item.date);
-            return isSameDay(itemDate, targetDate);
-          });
-
-          if (!found) {
+          const found = summaryRes.data.find((item) =>
+            isSameDay(new Date(item.date), targetDate),
+          );
+          if (!found)
             return {
               date: dateStr,
               kcal: 0,
@@ -142,9 +127,6 @@ const ReportPage = () => {
               sugars: 0,
               score: 0,
             };
-          }
-
-          // API calories 필드를 리포트 내부 키(kcal)로 정규화
           return {
             ...found,
             kcal: Number(found.kcal ?? found.calories) || 0,
@@ -155,152 +137,138 @@ const ReportPage = () => {
             score: Number(found.score) || 0,
           };
         });
-
         setDailyData(formattedData);
         setLastWeekData(lastWeekRes.data || []);
         setGoals(goalRes.data);
       } catch (error) {
-        console.error('Data fetch error:', error);
+        console.error(error);
       } finally {
         setIsLoading(false);
       }
     };
     fetchReport();
-  }, [startDateStr, endDateStr, lastWeekStart, lastWeekEnd]);
+  }, [
+    startDateStr,
+    endDateStr,
+    lastWeekStart,
+    lastWeekEnd,
+    aiReviewRefreshToken,
+  ]);
 
-  const isBetween1400And1800 = viewportWidth <= 1800 && viewportWidth > 1400;
+  // 반응형 변수 정의
+  const isAtMost1800 = viewportWidth <= 1800;
   const isAtMost1400 = viewportWidth <= 1400;
+  const isAtMost1180 = viewportWidth <= 1180;
   const isAtMost870 = viewportWidth <= 870;
   const isAtMost800 = viewportWidth <= 800;
+  const isAtMost700 = viewportWidth <= 700;
+  const isAtMost1200 = viewportWidth <= 1200;
   const isAtMost600 = viewportWidth <= 600;
   const isAtMost500 = viewportWidth <= 500;
   const isAtMost450 = viewportWidth < 450;
-  const isAtMost350 = viewportWidth <= 350;
-  const isAtMost380 = viewportWidth <= 380;
   const isAtMost400 = viewportWidth <= 400;
-  const isAtMost1180 = viewportWidth <= 1180;
-  const isAtMost1800 = viewportWidth <= 1800;
-  const shouldShowAiSidebar = !isAtMost1800;
+  const isAtMost380 = viewportWidth <= 384;
+  const isBetween384And450 = viewportWidth > 384 && viewportWidth < 450;
+  const isAtMost350 = viewportWidth <= 350;
+  const isBetween1200And1400 = viewportWidth > 1200 && viewportWidth <= 1400;
+  const isBetween1024And1199 = viewportWidth < 1200 && viewportWidth > 1023;
+  const isBetween870And1023 = viewportWidth >= 870 && viewportWidth <= 1023;
+  const isBetween1023And1050 = viewportWidth >= 1023 && viewportWidth <= 1050;
+
+  const shouldShowAiSidebar = !isAtMost1800 || isPdfMode;
+  const reviewButtonTextSizeClass = isAtMost800
+    ? 'text-[10px]'
+    : isAtMost1200
+      ? 'text-[12px]'
+      : 'text-[14px]';
+  const diffLabelTextSizeClass =
+    isAtMost380 || isBetween384And450 ? 'text-[11px]' : 'text-[13px]';
+  const diffScoreTextSizeClass = isAtMost380
+    ? 'text-[11px]'
+    : isBetween384And450
+      ? 'text-[15px]'
+      : 'text-[17px]';
+  const diffScoreIconSize = isAtMost380 ? 11 : 13;
   const nicknameText = profile?.nickname || '??';
   const shouldMarqueeNickname = isAtMost350
     ? nicknameText.length >= 4
     : isAtMost450
       ? nicknameText.length >= 5
-      : nicknameText.length >= 7;
+      : isAtMost500
+        ? nicknameText.length >= 5
+        : nicknameText.length >= 7;
 
-  // 이번 주 평균 점수
-  const averageScore = useMemo(() => {
-    if (dailyData.length === 0) return 0;
-    return Math.round(
-      dailyData.reduce((acc, cur) => acc + (cur.score || 0), 0) / 7,
-    );
-  }, [dailyData]);
-
-  // 지난 주 대비 변화량 계산 (diffLastWeek)
+  // 가공 데이터 useMemo
+  const averageScore = useMemo(
+    () =>
+      dailyData.length
+        ? Math.round(
+            dailyData.reduce((acc, cur) => acc + (cur.score || 0), 0) / 7,
+          )
+        : 0,
+    [dailyData],
+  );
   const diffLastWeek = useMemo(() => {
-    if (lastWeekData.length === 0) return 0;
+    if (!lastWeekData.length) return 0;
     const lastWeekAvg = Math.round(
       lastWeekData.reduce((acc, cur) => acc + (cur.score || 0), 0) / 7,
     );
     return averageScore - lastWeekAvg;
   }, [averageScore, lastWeekData]);
 
-  // 최신 기록 데이터 (오늘 또는 기록된 마지막 날)
-  const latestData = useMemo(() => {
-    return (
-      dailyData.filter((d) => d.kcal > 0).pop() || {
-        kcal: 0,
-        carbohydrate: 0,
-        protein: 0,
-        fat: 0,
-        sugars: 0,
-      }
-    );
-  }, [dailyData]);
-
-  // 영양 밸런스는 오늘 날짜 데이터 기준으로 표시
-  const todayDateStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
-  const todayData = useMemo(() => {
-    return (
-      dailyData.find((d) => d.date === todayDateStr) || {
-        kcal: 0,
-        carbohydrate: 0,
-        protein: 0,
-        fat: 0,
-        sugars: 0,
-      }
-    );
-  }, [dailyData, todayDateStr]);
-
-  const getAchievementRate = (intake, goal) => {
-    const intakeValue = Number(intake) || 0;
-    const goalValue = Number(goal) || 0;
-    if (goalValue <= 0) return 0;
-    return Math.round((intakeValue / goalValue) * 100);
-  };
-
-  // 차트 및 영양소 데이터 가공
-  const radarData = useMemo(
-    () => [
+  const radarData = useMemo(() => {
+    const todayData = dailyData.find(
+      (d) => d.date === format(new Date(), 'yyyy-MM-dd'),
+    ) || { kcal: 0, carbohydrate: 0, protein: 0, fat: 0, sugars: 0 };
+    const getRate = (val, goal) =>
+      goal > 0 ? Math.round((Number(val) / Number(goal)) * 100) : 0;
+    return [
       {
         subject: '칼로리',
-        value: getAchievementRate(
-          todayData.kcal ?? todayData.calories,
-          goals?.targetCalories,
-        ),
+        value: getRate(todayData.kcal, goals?.targetCalories),
       },
       {
         subject: '탄수화물',
-        value: getAchievementRate(
-          todayData.carbohydrate,
-          goals?.targetCarbohydrate,
-        ),
+        value: getRate(todayData.carbohydrate, goals?.targetCarbohydrate),
       },
       {
         subject: '단백질',
-        value: getAchievementRate(todayData.protein, goals?.targetProtein),
+        value: getRate(todayData.protein, goals?.targetProtein),
       },
-      {
-        subject: '지방',
-        value: getAchievementRate(todayData.fat, goals?.targetFat),
-      },
-      {
-        subject: '당',
-        value: getAchievementRate(todayData.sugars, goals?.targetSugars),
-      },
-    ],
-    [todayData, goals],
-  );
+      { subject: '지방', value: getRate(todayData.fat, goals?.targetFat) },
+      { subject: '당', value: getRate(todayData.sugars, goals?.targetSugars) },
+    ];
+  }, [dailyData, goals]);
 
-  const nutritionData = useMemo(
-    () => [
+  const weeklyNutritionData = useMemo(() => {
+    const avg = calculateWeeklyAverageIntake(dailyData);
+    return [
       {
         id: 1,
         name: '탄수화물',
-        inputAmount: latestData.carbohydrate,
+        inputAmount: avg.carbohydrate,
         adviseAmount: goals?.targetCarbohydrate || 0,
       },
       {
         id: 2,
         name: '단백질',
-        inputAmount: latestData.protein,
+        inputAmount: avg.protein,
         adviseAmount: goals?.targetProtein || 0,
       },
       {
         id: 3,
         name: '지방',
-        inputAmount: latestData.fat,
+        inputAmount: avg.fat,
         adviseAmount: goals?.targetFat || 0,
       },
       {
         id: 4,
         name: '당류',
-        inputAmount: latestData.sugars,
+        inputAmount: avg.sugars,
         adviseAmount: goals?.targetSugars || 0,
       },
-    ],
-    [latestData, goals],
-  );
+    ];
+  }, [dailyData, goals]);
 
   const lineData = dailyData.map((item) => ({
     day: item.date.slice(5, 10).replace('-', '/'),
@@ -311,515 +279,161 @@ const ReportPage = () => {
     sugars: item.sugars,
   }));
 
-  // 과잉/결핍 카드는 최근 7일 평균 섭취량 기준으로 계산
-  const weeklyNutritionData = useMemo(() => {
-    const weeklyAverageIntake = calculateWeeklyAverageIntake(dailyData);
-
-    return [
-      {
-        id: 1,
-        name: '탄수화물',
-        inputAmount: weeklyAverageIntake.carbohydrate,
-        adviseAmount: goals?.targetCarbohydrate || 0,
-      },
-      {
-        id: 2,
-        name: '단백질',
-        inputAmount: weeklyAverageIntake.protein,
-        adviseAmount: goals?.targetProtein || 0,
-      },
-      {
-        id: 3,
-        name: '지방',
-        inputAmount: weeklyAverageIntake.fat,
-        adviseAmount: goals?.targetFat || 0,
-      },
-      {
-        id: 4,
-        name: '당류',
-        inputAmount: weeklyAverageIntake.sugars,
-        adviseAmount: goals?.targetSugars || 0,
-      },
-    ];
-  }, [dailyData, goals]);
-
-  const nutritionDiffSummary = useMemo(() => {
-    return nutritionData.map((item) => {
-      const goal = Number(item.adviseAmount) || 0;
-      const intake = Number(item.inputAmount) || 0;
-      const diff = intake - goal;
-      const percentage = goal > 0 ? Math.round((diff / goal) * 100) : 0;
-      return {
-        nutrient: item.name,
-        intake,
-        goal,
-        diff,
-        percentage,
-      };
-    });
-  }, [nutritionData]);
-
-  const aiNutritionSignature = useMemo(() => {
-    const normalizedDaily = dailyData.map((item) => ({
-      date: item.date,
-      kcal: Number(item.kcal) || 0,
-      carbohydrate: Number(item.carbohydrate) || 0,
-      protein: Number(item.protein) || 0,
-      fat: Number(item.fat) || 0,
-      sugars: Number(item.sugars) || 0,
-      score: Number(item.score) || 0,
-    }));
-
-    const normalizedGoals = {
-      calories: Number(goals?.targetCalories) || 0,
-      carbohydrate: Number(goals?.targetCarbohydrate) || 0,
-      protein: Number(goals?.targetProtein) || 0,
-      fat: Number(goals?.targetFat) || 0,
-      sugars: Number(goals?.targetSugars) || 0,
-    };
-
-    return JSON.stringify({
-      goals: normalizedGoals,
-      dailyData: normalizedDaily,
-    });
-  }, [goals, dailyData]);
-
-  const aiPayload = useMemo(
-    () => ({
-      profileNickname: profile?.nickname || '사용자',
-      weeklyAverageScore: averageScore,
-      scoreDiffFromLastWeek: diffLastWeek,
-      weeklyAverageIntake: calculateWeeklyAverageIntake(dailyData),
-      latestIntake: {
-        kcal: latestData.kcal || 0,
-        carbohydrate: latestData.carbohydrate || 0,
-        protein: latestData.protein || 0,
-        fat: latestData.fat || 0,
-        sugars: latestData.sugars || 0,
-      },
-      nutritionGoals: {
-        calories: Number(goals?.targetCalories) || 0,
-        carbohydrate: Number(goals?.targetCarbohydrate) || 0,
-        protein: Number(goals?.targetProtein) || 0,
-        fat: Number(goals?.targetFat) || 0,
-        sugars: Number(goals?.targetSugars) || 0,
-      },
-      nutrientGapSummary: nutritionDiffSummary,
-    }),
-    [
-      profile?.nickname,
-      averageScore,
-      diffLastWeek,
-      dailyData,
-      latestData,
-      goals,
-      nutritionDiffSummary,
-    ],
-  );
-
-  const normalizeRecommendedFoods = (recommendedFoods) => {
-    if (!Array.isArray(recommendedFoods)) return [];
-    const toTagArray = (rawTags) => {
-      if (Array.isArray(rawTags)) return rawTags.filter(Boolean);
-      if (typeof rawTags !== 'string') return [];
-
-      const trimmed = rawTags.trim();
-      if (!trimmed) return [];
-
-      // JSON 문자열 배열 형태면 우선 파싱 시도
-      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-        try {
-          const parsed = JSON.parse(trimmed);
-          return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
-        } catch {
-          // 파싱 실패 시 콤마 분리로 fallback
-        }
-      }
-
-      return trimmed
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter(Boolean);
-    };
-
-    return recommendedFoods.slice(0, 3).map((food, index) => ({
-      id:
-        food?.id ||
-        `report-ai-food-${index}-${food?.name || 'unknown'}`.replace(
-          /\s+/g,
-          '-',
-        ),
-      name: food?.name || '추천 음식',
-      description: food?.description || '',
-      kcal: Number(food?.kcal) || 0,
-      carbs: Number(food?.carbs) || 0,
-      protein: Number(food?.protein) || 0,
-      fat: Number(food?.fat) || 0,
-      sugar: Number(food?.sugar) || 0,
-      tags: toTagArray(food?.tags),
-    }));
-  };
-
-  const buildFallbackReview = () => {
-    const excess = nutritionDiffSummary
-      .filter((item) => item.percentage > 0)
-      .sort((a, b) => b.percentage - a.percentage)
-      .slice(0, 2);
-    const deficiency = nutritionDiffSummary
-      .filter((item) => item.percentage < 0)
-      .sort((a, b) => a.percentage - b.percentage)
-      .slice(0, 2);
-
-    const primaryDeficiency = deficiency[0];
-    const reviewText = primaryDeficiency
-      ? `${primaryDeficiency.nutrient} 섭취가 권장량 대비 ${Math.abs(primaryDeficiency.percentage)}% 부족합니다. 다음 주에는 부족한 영양소를 우선 보완해 균형을 맞춰보세요.`
-      : '전반적인 영양 밸런스가 안정적으로 유지되고 있습니다. 현재 식단 패턴을 유지하면서 수분 섭취와 식사 규칙성을 함께 관리해보세요.';
-
-    const fallbackPoints = [
-      excess[0]
-        ? `${excess[0].nutrient} 섭취를 약간 줄여 일일 권장량에 맞춰보세요.`
-        : '가공식품과 나트륨이 높은 반찬 섭취 빈도를 주 1~2회 줄여보세요.',
-      deficiency[0]
-        ? `${deficiency[0].nutrient} 보완 식품을 하루 한 끼 이상 추가해보세요.`
-        : '채소, 단백질, 통곡물을 포함한 균형 식사를 유지하세요.',
-      '하루 물 1.5~2L 섭취와 규칙적인 식사 시간을 유지해보세요.',
-    ];
-
-    return {
-      review: reviewText,
-      improvementPoints: fallbackPoints,
-      recommendedFoods: [],
-    };
-  };
-
-  const parseAiJson = (raw) => {
-    if (!raw || typeof raw !== 'string') return null;
-    try {
-      return JSON.parse(raw);
-    } catch {
-      const cleaned = raw
-        .replace(/```json/g, '')
-        .replace(/```/g, '')
-        .trim();
-      try {
-        return JSON.parse(cleaned);
-      } catch {
-        return null;
-      }
-    }
-  };
-
-  const extractAiReviewResponse = (data) => {
-    if (!data || typeof data !== 'object') return null;
-
-    // 최신 백엔드 응답: { success, review, improvementPoints, recommendedFoods }
-    if (typeof data.review === 'string') {
-      return {
-        review: data.review,
-        improvementPoints: Array.isArray(data.improvementPoints)
-          ? data.improvementPoints
-          : [],
-        recommendedFoods: Array.isArray(data.recommendedFoods)
-          ? data.recommendedFoods
-          : [],
-      };
-    }
-
-    // 구 응답 호환: { content: "<json string>" }
-    const parsedLegacy = parseAiJson(data.content);
-    if (parsedLegacy && typeof parsedLegacy === 'object') {
-      return {
-        review: parsedLegacy.review,
-        improvementPoints: Array.isArray(parsedLegacy.improvementPoints)
-          ? parsedLegacy.improvementPoints
-          : [],
-        recommendedFoods: Array.isArray(parsedLegacy.recommendedFoods)
-          ? parsedLegacy.recommendedFoods
-          : [],
-      };
-    }
-
-    return null;
-  };
-
-  useEffect(() => {
-    if (!goals || !dailyData.length || isLoading) return;
-
-    try {
-      const cached = localStorage.getItem(aiCacheStorageKey);
-      if (cached) {
-        const parsedCached = JSON.parse(cached);
-        if (
-          parsedCached?.signature === aiNutritionSignature &&
-          parsedCached?.review &&
-          Array.isArray(parsedCached?.improvementPoints)
-        ) {
-          setAiReview({
-            review: parsedCached.review,
-            improvementPoints: parsedCached.improvementPoints,
-          });
-          setFoodList(
-            Array.isArray(parsedCached.foodList) ? parsedCached.foodList : [],
-          );
-          return;
-        }
-      }
-    } catch (error) {
-      console.error('AI review cache read error:', error);
-    }
-
-    const fetchAiReview = async () => {
-      setIsAiLoading(true);
-      try {
-        const data = await api.post('/api/ai/report-review', aiPayload);
-        const parsed = extractAiReviewResponse(data);
-
-        if (!parsed) {
-          const fallback = buildFallbackReview();
-          setAiReview({
-            review: fallback.review,
-            improvementPoints: fallback.improvementPoints,
-          });
-          setFoodList([]);
-          try {
-            localStorage.setItem(
-              aiCacheStorageKey,
-              JSON.stringify({
-                signature: aiNutritionSignature,
-                review: fallback.review,
-                improvementPoints: fallback.improvementPoints,
-                foodList: [],
-              }),
-            );
-          } catch (error) {
-            console.error('AI review cache write error:', error);
-          }
-          return;
-        }
-
-        const safePoints = Array.isArray(parsed.improvementPoints)
-          ? parsed.improvementPoints.filter(Boolean).slice(0, 3)
-          : [];
-        const safeFoods = normalizeRecommendedFoods(parsed.recommendedFoods);
-
-        setAiReview({
-          review:
-            parsed.review ||
-            '주간 리포트 분석 결과를 기반으로 한 AI 리뷰가 준비되었습니다.',
-          improvementPoints: safePoints,
-        });
-        setFoodList(safeFoods);
-        try {
-          localStorage.setItem(
-            aiCacheStorageKey,
-            JSON.stringify({
-              signature: aiNutritionSignature,
-              review:
-                parsed.review ||
-                '주간 리포트 분석 결과를 기반으로 한 AI 리뷰가 준비되었습니다.',
-              improvementPoints: safePoints,
-              foodList: safeFoods,
-            }),
-          );
-        } catch (error) {
-          console.error('AI review cache write error:', error);
-        }
-      } catch (error) {
-        const fallback = buildFallbackReview();
-        setAiReview({
-          review: fallback.review,
-          improvementPoints: fallback.improvementPoints,
-        });
-        setFoodList([]);
-        try {
-          localStorage.setItem(
-            aiCacheStorageKey,
-            JSON.stringify({
-              signature: aiNutritionSignature,
-              review: fallback.review,
-              improvementPoints: fallback.improvementPoints,
-              foodList: [],
-            }),
-          );
-        } catch (cacheError) {
-          console.error('AI review cache write error:', cacheError);
-        }
-        console.error('AI review fetch error:', error);
-      } finally {
-        setIsAiLoading(false);
-      }
-    };
-
-    fetchAiReview();
-  }, [
-    goals,
-    dailyData,
-    isLoading,
-    profile?.nickname,
-    aiPayload,
-    aiCacheStorageKey,
-    aiNutritionSignature,
-    aiReviewRefreshToken,
-  ]);
-
   const handleResetRecommendations = async () => {
     setIsFoodListLoading(true);
     try {
       const data = await api.post('/api/ai/recommend-foods', {
         currentReview: aiReview.review,
-        weeklyAverageIntake: aiPayload.weeklyAverageIntake,
-        nutritionGoals: aiPayload.nutritionGoals,
+        weeklyAverageIntake: calculateWeeklyAverageIntake(dailyData),
+        nutritionGoals: goals,
       });
-      // 최신/구 응답 형식 모두 처리
-      const parsed =
-        Array.isArray(data?.recommendedFoods) || Array.isArray(data)
-          ? data
-          : parseAiJson(data?.content);
-      const recommendedFoods = Array.isArray(parsed)
-        ? parsed
-        : parsed?.recommendedFoods || data?.recommendedFoods;
-      const refreshedFoods = normalizeRecommendedFoods(recommendedFoods);
-
-      if (refreshedFoods.length) {
-        setFoodList(refreshedFoods);
-        try {
-          const cached = localStorage.getItem(aiCacheStorageKey);
-          const parsedCached = cached ? JSON.parse(cached) : {};
-          localStorage.setItem(
-            aiCacheStorageKey,
-            JSON.stringify({
-              signature: aiNutritionSignature,
-              review: parsedCached?.review || aiReview.review,
-              improvementPoints:
-                parsedCached?.improvementPoints || aiReview.improvementPoints,
-              foodList: refreshedFoods,
-            }),
-          );
-        } catch (error) {
-          console.error('AI review cache write error:', error);
-        }
-      }
-    } catch (error) {
-      console.error('AI recommendation refresh error:', error);
+      setFoodList(data?.recommendedFoods || []);
+    } catch (e) {
+      console.error(e);
     } finally {
       setIsFoodListLoading(false);
     }
   };
 
   const handleRefreshAiReport = () => {
-    try {
-      localStorage.removeItem(aiCacheStorageKey);
-    } catch (error) {
-      console.error('AI review cache remove error:', error);
-    }
-    setIsAiLoading(true);
+    localStorage.removeItem(aiCacheStorageKey);
     setAiReviewRefreshToken((prev) => prev + 1);
   };
 
+  // PDF 저장 핸들러
   const handleDownloadPdf = async () => {
     if (reportRef.current === null) return;
+    setIsPdfMode(true);
+    const originalStyle = reportRef.current.style.cssText;
+    const gridContainer = reportRef.current.querySelector(
+      '#report-grid-container',
+    );
+    const leftSection = reportRef.current.querySelector('#report-left-section');
+    const sidebarSection = reportRef.current.querySelector(
+      '#report-sidebar-section',
+    );
+    const balDefGrid = reportRef.current.querySelector('#report-bal-def-grid');
+
     try {
+      reportRef.current.style.cssText = `
+        width: 1900px !important; height: 1080px !important;
+        position: absolute !important; top: 0 !important; left: 0 !important;
+        z-index: -9999 !important; visibility: visible !important;
+        padding: 40px !important; background-color: #F2F9F5 !important;
+      `;
+      gridContainer.className = 'grid grid-cols-3 gap-8 h-full';
+      leftSection.className = 'col-span-2 flex flex-col gap-6';
+      sidebarSection.className = 'col-span-1 flex flex-col gap-7 block';
+      if (balDefGrid)
+        balDefGrid.className = 'grid grid-cols-2 gap-5 !grid-cols-2';
+
+      await new Promise((resolve) => setTimeout(resolve, 3500));
+
       const dataUrl = await toPng(reportRef.current, {
         cacheBust: true,
         backgroundColor: '#F2F9F5',
-        pixelRatio: 3,
+        pixelRatio: 2,
+        width: 1900,
+        height: 1080,
       });
-      const pdf = new jsPDF('l', 'mm', 'a4');
-      const imgProps = pdf.getImageProperties(dataUrl);
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pageWidth;
-      const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-      const marginTop = (pageHeight - imgHeight) / 2;
-      pdf.addImage(dataUrl, 'PNG', 0, marginTop, imgWidth, imgHeight);
-      pdf.save(`HoneyMat_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+
+      reportRef.current.style.cssText = originalStyle;
+      setIsPdfMode(false);
+
+      const img = new Image();
+      await new Promise((res) => {
+        img.onload = res;
+        img.src = dataUrl;
+      });
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [1900, 1080],
+      });
+      pdf.addImage(dataUrl, 'PNG', 0, 0, 1900, 1080);
+      pdf.save(`HoneyMat_Report_${nicknameText}.pdf`);
     } catch (err) {
-      console.error('PDF 생성 오류:', err);
-      alert('PDF 생성 중 오류가 발생했습니다.');
+      reportRef.current.style.cssText = originalStyle;
+      setIsPdfMode(false);
+      alert('PDF 생성 오류');
     }
   };
 
-  if (isLoading) {
+  if (isLoading)
     return (
-      <div className="flex items-center justify-center h-screen text-[#FF8243]">
-        <Loader2 className="w-12 h-12 animate-spin" />
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-12 h-12 animate-spin text-[#FF8243]" />
       </div>
     );
-  }
 
   return (
-    <div className={`${isAtMost600 ? 'py-1.5 px-2' : 'p-2'} min-h-screen`}>
+    <div
+      className={`${isAtMost600 ? 'py-1.5 px-2' : 'p-2'} min-h-screen relative`}
+    >
       <style>{`
         @keyframes reportNicknameMarquee {
           0% { transform: translateX(0%); }
           100% { transform: translateX(-50%); }
         }
+        .weekly-trend-scroll {
+          scrollbar-color: #ff8243 #ffe7da;
+          scrollbar-width: thin;
+        }
+        .weekly-trend-scroll::-webkit-scrollbar {
+          height: 8px;
+        }
+        .weekly-trend-scroll::-webkit-scrollbar-track {
+          background: #ffe7da;
+          border-radius: 9999px;
+        }
+        .weekly-trend-scroll::-webkit-scrollbar-thumb {
+          background: #ff8243;
+          border-radius: 9999px;
+        }
       `}</style>
+
       <div
         ref={reportRef}
-        className={`bg-[#F2F9F5] text-[#1E2923] w-full mx-auto rounded-2xl border border-gray-100 ${
-          isAtMost600 ? 'px-5 py-4' : 'p-5'
-        }`}
+        className={`bg-[#F2F9F5] text-[#1E2923] w-full mx-auto rounded-2xl border border-gray-100 ${isAtMost600 ? 'px-5 py-4' : 'p-5'}`}
       >
         <div
+          id="report-grid-container"
           className={
-            shouldShowAiSidebar
+            shouldShowAiSidebar || isPdfMode
               ? 'grid grid-cols-3 gap-5'
               : `grid grid-cols-1 ${isAtMost600 ? 'gap-3' : 'gap-5'}`
           }
         >
           <div
+            id="report-left-section"
             className={
-              shouldShowAiSidebar
+              shouldShowAiSidebar || isPdfMode
                 ? 'col-span-2 flex flex-col gap-5'
                 : `col-span-1 flex flex-col ${isAtMost600 ? 'gap-3' : 'gap-5'}`
             }
           >
-            {/* 상단 요약 카드 */}
+            {/* 상단 요약 섹션 */}
             <div
-              className={`bg-white ${
-                isAtMost450 ? 'px-2 py-2' : isAtMost600 ? 'px-5 py-4' : 'p-5'
-              } rounded-xl shadow-sm border-l-8 border-[#FF8243] ${
-                isAtMost600 ? 'block' : 'flex justify-between items-center'
-              }`}
+              className={`bg-white ${isAtMost450 ? 'px-2 py-2' : isAtMost600 ? 'px-5 py-4' : 'p-5'} rounded-xl shadow-sm border-l-8 border-[#FF8243] flex justify-between items-center`}
             >
               <h2
                 className={`text-gray-700 ${
                   isAtMost380
-                    ? 'text-[12px]'
+                    ? 'text-[11px]'
                     : isAtMost450
-                    ? 'text-[12.5px]'
-                    : isAtMost500
-                    ? 'text-[13px]'
-                    : isAtMost800
-                      ? 'text-[15px]'
-                      : isAtMost1400
-                        ? 'text-[17px]'
-                        : 'text-[19px]'
-                } ${isAtMost500 ? '' : 'mr-2'}`}
-              >
-                <span
-                  className={`text-gray-700 font-semibold ${
-                    isAtMost380
                       ? 'text-[14px]'
-                      : isAtMost450
-                      ? 'text-[14.5px]'
-                      : isAtMost500
-                      ? 'text-[16px]'
                       : isAtMost800
-                      ? 'text-[18px]'
-                      : isAtMost1400
-                        ? 'text-[20px]'
-                        : 'text-[22px]'
-                  } pr-1 inline-block align-bottom`}
-                >
+                        ? 'text-[15px]'
+                        : 'text-[19px]'
+                }`}
+              >
+                <span className="font-semibold pr-1 inline-block align-bottom">
                   {shouldMarqueeNickname ? (
                     <span className="inline-block w-[7ch] overflow-hidden whitespace-nowrap align-bottom">
                       <span
                         className="inline-flex items-center"
                         style={{
-                          animation:
-                            'reportNicknameMarquee 7s linear infinite',
+                          animation: 'reportNicknameMarquee 7s linear infinite',
                         }}
                       >
                         <span>{nicknameText}</span>
@@ -831,130 +445,59 @@ const ReportPage = () => {
                   )}
                 </span>
                 님의 주간 영양 점수는{' '}
-                <span
-                  className={`text-[#FF8243] font-bold ${
-                    isAtMost380
-                      ? 'text-[15px]'
-                      : isAtMost450
-                      ? 'text-[15.5px]'
-                      : isAtMost500
-                        ? 'text-[17px]'
-                        : isAtMost800
-                          ? 'text-[19px]'
-                          : isAtMost1400
-                            ? 'text-[21px]'
-                            : 'text-[23px]'
-                  } pr-0.5`}
-                >
+                <span className="text-[#FF8243] font-bold">
                   {averageScore}점
-                </span>
+                </span>{' '}
                 입니다.
               </h2>
-              {!isAtMost600 && (
-                <div className="flex items-center gap-2 shrink-0">
-                  {!isAtMost800 && (
-                    <div className="flex items-center whitespace-nowrap gap-2">
-                      <span
-                        className={`text-gray-600 ${
-                        isAtMost380
-                          ? 'text-[12px]'
-                          : isAtMost450
-                          ? 'text-[12.5px]'
-                          : isAtMost1400
-                            ? 'text-[13px]'
-                            : 'text-[15px]'
-                        } mt-0.5`}
-                      >
-                        지난 주 대비
-                      </span>
-                      <div
-                        className={`flex items-center gap-0.5 font-bold ${
-                          isAtMost380
-                            ? 'text-[15px]'
-                            : isAtMost450
-                            ? 'text-[15.5px]'
-                            : isAtMost1400
-                              ? 'text-[17px]'
-                              : 'text-[19px]'
-                        } ${
-                          diffLastWeek > 0
-                            ? 'text-emerald-600'
-                            : diffLastWeek < 0
-                              ? 'text-sky-600'
-                              : 'text-gray-600'
-                        }`}
-                      >
-                        {diffLastWeek > 0 ? (
-                          <FaPlus
-                            size={isAtMost450 ? 10 : isAtMost500 ? 11 : 13}
-                            className="mt-0.5"
-                          />
-                        ) : diffLastWeek < 0 ? (
-                          <FaMinus
-                            size={isAtMost450 ? 10 : isAtMost500 ? 11 : 13}
-                            className="mt-0.5"
-                          />
-                        ) : (
-                          <FaPlusMinus
-                            size={isAtMost450 ? 10 : isAtMost500 ? 11 : 13}
-                            className="mt-0.5"
-                          />
-                        )}
-                        {Math.abs(diffLastWeek)}점
-                      </div>
-                    </div>
-                  )}
-                  {isAtMost1800 && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setIsAiReviewExpandedAt1800((prev) => !prev)
-                      }
-                      className={`rounded-xl border border-[#FF8243]/40 bg-[#FFF4ED] px-2 py-1 ${
-                        isAtMost380
-                          ? 'text-[11px]'
-                          : isAtMost450
-                          ? 'text-[11.5px]'
-                          : isAtMost500
-                            ? 'text-[12px]'
-                            : 'text-sm'
-                      } font-semibold text-[#E46D2E] hover:bg-[#FFEADB] transition-colors flex items-center gap-1.5`}
+              {(!isAtMost700 || isPdfMode) && (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center whitespace-nowrap gap-2">
+                    <span
+                      className={`text-gray-600 mt-0.5 ${diffLabelTextSizeClass}`}
                     >
-                      {!isAiReviewExpandedAt1800 && (
-                        <PiChefHat
-                          size={isAtMost450 ? 20 : isAtMost500 ? 21 : 23}
-                          color="#FF8243"
-                        />
+                      지난 주 대비
+                    </span>
+                    <div
+                      className={`flex items-center gap-0.5 font-bold ${diffScoreTextSizeClass} ${
+                        diffLastWeek > 0
+                          ? 'text-emerald-600'
+                          : diffLastWeek < 0
+                            ? 'text-sky-600'
+                            : 'text-gray-600'
+                      }`}
+                    >
+                      {diffLastWeek > 0 ? (
+                        <FaPlus size={diffScoreIconSize} />
+                      ) : diffLastWeek < 0 ? (
+                        <FaMinus size={diffScoreIconSize} />
+                      ) : (
+                        <FaPlusMinus size={diffScoreIconSize} />
                       )}
-                      리뷰
+                      {Math.abs(diffLastWeek)}점
+                    </div>
+                  </div>
+                  {isAtMost1800 && !isPdfMode && (
+                    <button
+                      onClick={() => setIsAiReviewExpandedAt1800(true)}
+                      className={`rounded-xl border border-[#FF8243]/40 bg-[#FFF4ED] px-2 py-1 text-[#E46D2E] flex items-center gap-1.5 shadow-sm ${reviewButtonTextSizeClass}`}
+                    >
+                      <PiChefHat size={18} /> 리뷰
                     </button>
                   )}
                 </div>
               )}
             </div>
-
-            {isAtMost600 && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-2 py-1 flex items-center justify-between">
+            {isAtMost700 && !isPdfMode && (
+              <div className="bg-white rounded-xl shadow-sm border border-[#FFE1CF] px-3 py-2 flex items-center justify-between">
                 <div className="flex items-center whitespace-nowrap gap-2">
                   <span
-                    className={`text-gray-600 ${
-                      isAtMost380
-                        ? 'text-[12px]'
-                        : isAtMost450
-                        ? 'text-[12.5px]'
-                        : 'text-[13px]'
-                    } mt-0.5`}
+                    className={`text-gray-600 mt-0.5 ${diffLabelTextSizeClass}`}
                   >
                     지난 주 대비
                   </span>
                   <div
-                    className={`flex items-center gap-0.5 font-bold ${
-                      isAtMost380
-                        ? 'text-[15px]'
-                        : isAtMost450
-                        ? 'text-[15.5px]'
-                        : 'text-[17px]'
-                    } ${
+                    className={`flex items-center gap-0.5 font-bold ${diffScoreTextSizeClass} ${
                       diffLastWeek > 0
                         ? 'text-emerald-600'
                         : diffLastWeek < 0
@@ -963,209 +506,162 @@ const ReportPage = () => {
                     }`}
                   >
                     {diffLastWeek > 0 ? (
-                      <FaPlus
-                        size={isAtMost450 ? 10 : isAtMost500 ? 11 : 13}
-                        className="mt-0.5"
-                      />
+                      <FaPlus size={diffScoreIconSize} />
                     ) : diffLastWeek < 0 ? (
-                      <FaMinus
-                        size={isAtMost450 ? 10 : isAtMost500 ? 11 : 13}
-                        className="mt-0.5"
-                      />
+                      <FaMinus size={diffScoreIconSize} />
                     ) : (
-                      <FaPlusMinus
-                        size={isAtMost450 ? 10 : isAtMost500 ? 11 : 13}
-                        className="mt-0.5"
-                      />
+                      <FaPlusMinus size={diffScoreIconSize} />
                     )}
                     {Math.abs(diffLastWeek)}점
                   </div>
                 </div>
                 {isAtMost1800 && (
                   <button
-                    type="button"
-                    onClick={() => setIsAiReviewExpandedAt1800((prev) => !prev)}
-                    className={`rounded-xl border border-[#FF8243]/40 bg-[#FFF4ED] px-2 py-1 ${
-                      isAtMost380
-                        ? 'text-[11px]'
-                        : isAtMost450
-                        ? 'text-[11.5px]'
-                        : isAtMost500
-                        ? 'text-[12px]'
-                        : 'text-sm'
-                    } font-semibold text-[#E46D2E] hover:bg-[#FFEADB] transition-colors flex items-center gap-1.5`}
+                    onClick={() => setIsAiReviewExpandedAt1800(true)}
+                    className={`rounded-xl border border-[#FF8243]/40 bg-[#FFF4ED] px-2 py-1 text-[#E46D2E] flex items-center gap-1.5 shadow-sm ${reviewButtonTextSizeClass}`}
                   >
-                    {!isAiReviewExpandedAt1800 && (
-                      <PiChefHat
-                        size={isAtMost450 ? 20 : isAtMost500 ? 21 : 23}
-                        color="#FF8243"
-                      />
-                    )}
-                    리뷰
+                    <PiChefHat size={18} /> 리뷰
                   </button>
                 )}
               </div>
             )}
 
-            {/* 영양 밸런스, 과잉/결핍 섹션 */}
+            {/* 영양 밸런스 & 과잉/결핍 섹션 */}
             <div
-              className={`grid gap-5 ${
-                isAtMost870
-                  ? 'grid-cols-1'
-                  : isAtMost1400
-                    ? 'grid-cols-[3fr_2fr]'
-                    : 'grid-cols-2'
-              }`}
+              id="report-bal-def-grid"
+              className={
+                isPdfMode ||
+                (!isBetween1024And1199 && !isAtMost870 && !isAtMost1400)
+                  ? 'grid grid-cols-2 gap-5'
+                  : 'grid grid-cols-1 gap-5'
+              }
             >
-              <div
-                className={`col-span-1 bg-white ${
-                  isAtMost500 ? 'p-4' : isAtMost600 ? 'px-6 py-5' : 'p-6'
-                } rounded-2xl shadow-sm border border-gray-100`}
-              >
-                <h3
-                  className={`font-bold ${
-                    isAtMost500 ? 'mb-4' : isAtMost600 ? 'mb-5' : 'mb-6'
-                  } text-gray-800 border-b ${isAtMost600 ? 'pb-1' : 'pb-2'}`}
-                >
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="font-bold mb-4 text-gray-800 border-b pb-2">
                   영양 밸런스
                 </h3>
                 <NutrientRadarChart
                   data={radarData}
                   angleTickFontSize={
-                    isAtMost450 ? 9 : isAtMost600 ? 11 : isAtMost1400 ? 13 : 14
+                    isPdfMode
+                      ? 14
+                      : isAtMost450
+                        ? 9
+                        : isAtMost600
+                          ? 11
+                          : isAtMost1400
+                            ? 13
+                            : 14
                   }
-                  radiusTickFontSize={isAtMost600 ? 10 : 12}
-                  outerRadius={isAtMost600 ? '80%' : '90%'}
-                  chartHeight={isAtMost500 ? 300 : 357}
+                  outerRadius={isPdfMode ? '90%' : isAtMost500 ? '78%' : '90%'}
+                  chartHeight={isPdfMode ? 357 : isAtMost500 ? 280 : 357}
                 />
               </div>
-
-              <div
-                className={`col-span-1 bg-white ${
-                  isAtMost600 ? 'px-6 py-5' : 'p-6'
-                } rounded-2xl shadow-sm border border-gray-100 flex flex-col`}
-              >
-                <h3
-                  className={`font-bold mb-1 text-gray-800 border-b ${
-                    isAtMost1400
-                      ? isAtMost600
-                        ? 'pb-0'
-                        : 'pb-0'
-                      : isAtMost600
-                        ? 'pb-2'
-                        : 'pb-3'
-                  }`}
-                >
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                <h3 className="font-bold mb-1 text-gray-800 border-b pb-2">
                   과잉/결핍 영양소
                 </h3>
-                <div className="flex-1 ">
+                <div className="flex-1">
                   <ReportCards
                     nutritionData={weeklyNutritionData}
-                    isBetween1400And1800={isBetween1400And1800}
-                    isAtMost1400={isAtMost1400}
-                    isAtMost1180={isAtMost1180}
+                    isAtMost1400={isPdfMode ? false : isAtMost1400}
+                    isAtMost1180={isPdfMode ? false : isAtMost1180}
                     enableSingleSelect={
-                      (isAtMost1400 && !isAtMost870) || isAtMost500
+                      isPdfMode
+                        ? false
+                        : ((isAtMost1400 && !isAtMost870) || isAtMost500) &&
+                          !isBetween1024And1199 &&
+                          !isBetween1200And1400 &&
+                          !isBetween870And1023
                     }
                     compactYFor600={isAtMost600}
                     compactFor500={isAtMost500}
+                    isPdfExport={isPdfMode}
                   />
                 </div>
               </div>
             </div>
 
-            {/* 7일간 변화 추이 */}
-            <div
-              className={`bg-white ${
-                isAtMost600 ? 'px-6 py-5' : 'p-6'
-              } rounded-2xl shadow-sm border border-gray-100`}
-            >
-              <h3
-                className={`font-bold ${
-                  isAtMost600 ? 'mb-5' : 'mb-6'
-                } text-gray-800 border-b ${isAtMost600 ? 'pb-1' : 'pb-2'}`}
-              >
+            {/* 변화 추이 섹션 */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h3 className="font-bold mb-6 text-gray-800 border-b pb-2">
                 7일간 변화 추이
               </h3>
               <div
                 className={
-                  isAtMost800
-                    ? 'overflow-x-auto [scrollbar-color:#FF8243_#FFEADB] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:bg-[#FF8243] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-[#FFEADB]'
+                  isAtMost800 && !isPdfMode
+                    ? 'overflow-x-auto weekly-trend-scroll'
                     : ''
                 }
               >
-                <div className={isAtMost800 ? 'min-w-[760px]' : ''}>
+                <div
+                  className={isAtMost800 && !isPdfMode ? 'min-w-[760px]' : ''}
+                >
                   <WeeklyLineChart
                     data={lineData}
-                    maximizeForSmallScreen={isAtMost400}
-                    legendFontSize={isAtMost800 ? 13 : 14}
-                    compactTextForNarrow={isAtMost800}
+                    maximizeForSmallScreen={isPdfMode ? false : isAtMost600}
+                    legendFontSize={isPdfMode ? 14 : isAtMost600 ? 11 : 14}
+                    compactTextForNarrow={isPdfMode ? false : isAtMost600}
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* AI 리뷰 사이드바 + 영양 결핍 체크 */}
-          {shouldShowAiSidebar && (
-            <div className="col-span-1 flex flex-col gap-7">
+          {/* 데스크톱 전용 사이드바 */}
+          <div
+            id="report-sidebar-section"
+            className={
+              shouldShowAiSidebar || isPdfMode
+                ? 'col-span-1 flex flex-col gap-7'
+                : 'hidden'
+            }
+          >
+            <AIReviewSection
+              aiReview={aiReview}
+              isAiLoading={isAiLoading}
+              isFoodListLoading={isFoodListLoading}
+              foodList={foodList}
+              onResetRecommendations={handleResetRecommendations}
+              onRefreshAiReport={handleRefreshAiReport}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 모바일 리뷰 모달 (이미지와 동일한 스타일 적용) */}
+      {isAtMost1800 && isAiReviewExpandedAt1800 && !isPdfMode && (
+        <div className="fixed inset-0 z-100 flex justify-end">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setIsAiReviewExpandedAt1800(false)}
+          />
+          <div className="relative w-[min(480px,92vw)] h-full bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300">
+            <div className="absolute top-4 right-4 z-10">
+              <button
+                onClick={() => setIsAiReviewExpandedAt1800(false)}
+                className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg shadow-sm text-sm font-semibold hover:bg-gray-50 text-gray-700"
+              >
+                닫기
+              </button>
+            </div>
+            <div className="p-4 pt-16">
               <AIReviewSection
                 aiReview={aiReview}
-                isAiLoading={isAiLoading}
-                isFoodListLoading={isFoodListLoading}
                 foodList={foodList}
                 onResetRecommendations={handleResetRecommendations}
                 onRefreshAiReport={handleRefreshAiReport}
               />
             </div>
-          )}
+          </div>
         </div>
-        {isAtMost1800 && isAiReviewExpandedAt1800 && (
-          <>
-            <div
-              className="fixed inset-0 bg-black/25 z-40"
-              onClick={() => setIsAiReviewExpandedAt1800(false)}
-            />
-            <div className="fixed top-[3px] right-5 bottom-[3px] w-[min(480px,92vw)] z-50 overflow-hidden">
-              <div className="h-full flex flex-col">
-                <div
-                  className={`flex justify-end ${isAtMost600 ? 'mb-1' : 'mb-2'}`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setIsAiReviewExpandedAt1800(false)}
-                    className="rounded-lg bg-white/95 border border-gray-200 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-white shadow-sm"
-                  >
-                    닫기
-                  </button>
-                </div>
-                <div className="overflow-y-auto pr-1">
-                  <AIReviewSection
-                    aiReview={aiReview}
-                    isAiLoading={isAiLoading}
-                    isFoodListLoading={isFoodListLoading}
-                    foodList={foodList}
-                    onResetRecommendations={handleResetRecommendations}
-                    onRefreshAiReport={handleRefreshAiReport}
-                  />
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
+      )}
 
       {/* PDF 저장 버튼 */}
-      <div
-        className={`items-center justify-center mx-auto flex ${
-          isAtMost600 ? 'mb-3 mt-3' : 'mb-4 mt-4'
-        }`}
-      >
+      <div className="flex justify-center mt-6 mb-10">
         <button
           onClick={handleDownloadPdf}
-          className={`bg-[#FF8243] text-white px-6 ${
-            isAtMost600 ? 'py-2' : 'py-3'
-          } rounded-lg font-bold hover:bg-[#ff8243c9] transition-all shadow-lg active:scale-95`}
+          className="bg-[#FF8243] text-white px-8 py-3 rounded-lg font-bold shadow-lg active:scale-95 transition-all"
         >
           PDF로 저장
         </button>
@@ -1173,101 +669,5 @@ const ReportPage = () => {
     </div>
   );
 };
-
-// ─── 영양 결핍 체크 카드 ────────────────────────────────────────────────────
-function DeficiencyCheckCard({ userId }) {
-  const [dateStr, setDateStr] = useState(() =>
-    new Date().toISOString().slice(0, 10),
-  );
-  const [checking, setChecking] = useState(false);
-  const [result, setResult] = useState(null);
-  const [checkError, setCheckError] = useState(null);
-
-  const handleCheck = async () => {
-    if (!userId) {
-      setCheckError('로그인이 필요합니다.');
-      return;
-    }
-    setChecking(true);
-    setCheckError(null);
-    setResult(null);
-    try {
-      const res = await checkDeficiency(dateStr, userId);
-      setResult(res?.data ?? null);
-    } catch (err) {
-      setCheckError(
-        err?.response?.data?.message ??
-          err?.message ??
-          '결핍 체크에 실패했습니다.',
-      );
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  return (
-    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-      <h3 className="font-bold text-lg mb-4 flex items-center text-gray-800">
-        <span className="mr-2">
-          <Stethoscope size={20} color="#FF8243" />
-        </span>
-        영양 결핍 체크
-      </h3>
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        <input
-          type="date"
-          value={dateStr}
-          onChange={(e) => setDateStr(e.target.value)}
-          className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-800"
-        />
-        <button
-          type="button"
-          onClick={handleCheck}
-          disabled={checking || !userId}
-          className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-white text-sm font-medium disabled:opacity-50 bg-[#FF8243] hover:bg-[#e57339]"
-        >
-          {checking ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Stethoscope size={16} />
-          )}
-          {checking ? '검사 중...' : '결핍 체크'}
-        </button>
-      </div>
-      {checkError && <p className="text-sm text-red-500 mb-2">{checkError}</p>}
-      {result && (
-        <div className="space-y-2">
-          {result.alerts?.length ? (
-            <ul className="space-y-1.5">
-              {result.alerts.map((a, i) => (
-                <li
-                  key={i}
-                  className="text-sm px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-gray-800"
-                >
-                  <span className="font-semibold">
-                    {a.type === 'CALORIES'
-                      ? '칼로리'
-                      : a.type === 'CARBOHYDRATE'
-                        ? '탄수화물'
-                        : a.type === 'PROTEIN'
-                          ? '단백질'
-                          : a.type === 'FAT'
-                            ? '지방'
-                            : a.type}
-                  </span>
-                  : 목표 {a.target} 중 {a.current} 섭취 (부족)
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-gray-600">
-              선택한 날짜에 영양 결핍이 없습니다.
-            </p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default ReportPage;
