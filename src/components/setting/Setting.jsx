@@ -588,7 +588,7 @@ export default function Setting() {
               >
                 JPG, PNG 형식 (최대 2MB)
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
                 <Button
                   size="small"
                   variant="outlined"
@@ -911,7 +911,7 @@ export default function Setting() {
                                     <FormControl
                                       key={key}
                                       size="small"
-                                      sx={{ width: 150, ...textFieldFocusStyle }}
+                                      sx={{ width: 164, ...textFieldFocusStyle }}
                                     >
                                       <InputLabel>{fieldLabel}</InputLabel>
                                       <Select
@@ -972,7 +972,7 @@ export default function Setting() {
                                         ),
                                       }}
                                       sx={{
-                                        width: 150,
+                                        width: 164,
                                         '& input[type="time"]': {
                                           WebkitAppearance: 'none',
                                         },
