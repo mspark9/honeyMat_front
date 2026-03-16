@@ -170,6 +170,7 @@ const ReportPage = () => {
   const isAtMost1800 = viewportWidth <= 1800;
   const isAtMost1400 = viewportWidth <= 1400;
   const isAtMost1180 = viewportWidth <= 1180;
+  const isAtMost1100 = viewportWidth <= 1100;
   const isAtMost870 = viewportWidth <= 870;
   const isAtMost800 = viewportWidth <= 800;
   const isAtMost700 = viewportWidth <= 700;
@@ -184,7 +185,7 @@ const ReportPage = () => {
   const isBetween1200And1400 = viewportWidth > 1200 && viewportWidth <= 1400;
   const isBetween1024And1199 = viewportWidth < 1200 && viewportWidth > 1023;
   const isBetween870And1023 = viewportWidth >= 870 && viewportWidth <= 1023;
-  const isBetween1023And1050 = viewportWidth >= 1023 && viewportWidth <= 1050;
+  const isBetween1023And1050 = viewportWidth > 1023 && viewportWidth < 1050;
 
   const shouldShowAiSidebar = !isAtMost1800 || isPdfMode;
   const reviewButtonTextSizeClass = isAtMost800
@@ -463,7 +464,7 @@ const ReportPage = () => {
 
     try {
       reportRef.current.style.cssText = `
-        width: 1900px !important; height: 1080px !important;
+        width: 1805px !important; height: 1080px !important;
         position: absolute !important; top: 0 !important; left: 0 !important;
         z-index: -9999 !important; visibility: visible !important;
         padding: 40px !important; background-color: #F2F9F5 !important;
@@ -480,7 +481,7 @@ const ReportPage = () => {
         cacheBust: true,
         backgroundColor: '#F2F9F5',
         pixelRatio: 2,
-        width: 1900,
+        width: 1805,
         height: 1080,
       });
 
@@ -495,9 +496,9 @@ const ReportPage = () => {
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'px',
-        format: [1900, 1080],
+        format: [1805, 1080],
       });
-      pdf.addImage(dataUrl, 'PNG', 0, 0, 1900, 1080);
+      pdf.addImage(dataUrl, 'PNG', 0, 0, 1805, 1080);
       pdf.save(`HoneyMat_Report_${nicknameText}.pdf`);
     } catch (err) {
       reportRef.current.style.cssText = originalStyle;
@@ -571,7 +572,9 @@ const ReportPage = () => {
                       ? 'text-[14px]'
                       : isAtMost800
                         ? 'text-[15px]'
-                        : 'text-[19px]'
+                        : isAtMost1100
+                          ? 'text-[17px]'
+                          : 'text-[19px]'
                 }`}
               >
                 <span className="font-semibold pr-1 inline-block align-bottom">
@@ -600,11 +603,13 @@ const ReportPage = () => {
               {(!isAtMost700 || isPdfMode) && (
                 <div className="flex items-center gap-2">
                   <div className="flex items-center whitespace-nowrap gap-2">
-                    <span
-                      className={`text-gray-600 mt-0.5 ${diffLabelTextSizeClass}`}
-                    >
-                      지난 주 대비
-                    </span>
+                    {!isBetween1023And1050 && (
+                      <span
+                        className={`text-gray-600 mt-0.5 ${diffLabelTextSizeClass}`}
+                      >
+                        지난 주 대비
+                      </span>
+                    )}
                     <div
                       className={`flex items-center gap-0.5 font-bold ${diffScoreTextSizeClass} ${
                         diffLastWeek > 0
@@ -638,11 +643,13 @@ const ReportPage = () => {
             {isAtMost700 && !isPdfMode && (
               <div className="bg-white rounded-xl shadow-sm border border-[#FFE1CF] px-3 py-2 flex items-center justify-between">
                 <div className="flex items-center whitespace-nowrap gap-2">
-                  <span
-                    className={`text-gray-600 mt-0.5 ${diffLabelTextSizeClass}`}
-                  >
-                    지난 주 대비
-                  </span>
+                  {!isBetween1023And1050 && (
+                    <span
+                      className={`text-gray-600 mt-0.5 ${diffLabelTextSizeClass}`}
+                    >
+                      지난 주 대비
+                    </span>
+                  )}
                   <div
                     className={`flex items-center gap-0.5 font-bold ${diffScoreTextSizeClass} ${
                       diffLastWeek > 0
@@ -771,6 +778,8 @@ const ReportPage = () => {
               foodList={foodList}
               onResetRecommendations={handleResetRecommendations}
               onRefreshAiReport={handleRefreshAiReport}
+              isAtMost1800={isAtMost1800}
+              isAtMost450={isAtMost450}
             />
           </div>
         </div>
@@ -792,7 +801,7 @@ const ReportPage = () => {
                 닫기
               </button>
             </div>
-            <div className="p-4 pt-16">
+            <div className="p-4 pt-16 ">
               <AIReviewSection
                 aiReview={aiReview}
                 isAiLoading={isAiLoading}
@@ -800,7 +809,9 @@ const ReportPage = () => {
                 foodList={foodList}
                 onResetRecommendations={handleResetRecommendations}
                 onRefreshAiReport={handleRefreshAiReport}
+                isAtMost1800={isAtMost1800}
                 isAtMost600={isAtMost600}
+                isAtMost450={isAtMost450}
               />
             </div>
           </div>
