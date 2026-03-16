@@ -224,8 +224,8 @@ export default function FoodSearchInput({ value, onChange, targetCalories = null
                         borderRadius: 1.5,
                         bgcolor: '#fff',
                         fontSize: '0.875rem',
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#FF8243' },
                     },
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e8ecf0' },
                     ...sx,
                 }}
             />
@@ -256,8 +256,8 @@ export default function FoodSearchInput({ value, onChange, targetCalories = null
                                 py: 1,
                                 cursor: 'pointer',
                                 display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
+                                flexDirection: 'column',
+                                alignItems: 'flex-start',
                                 bgcolor:
                                     index === highlightedIndex
                                         ? '#fff3ed'
@@ -275,19 +275,17 @@ export default function FoodSearchInput({ value, onChange, targetCalories = null
                                 variant="body2"
                                 fontWeight={500}
                                 sx={{
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                    flex: 1,
+                                    whiteSpace: 'normal',
+                                    wordBreak: 'break-all',
                                 }}
                             >
                                 {food.food_name}
                             </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25 }}>
                                 {food.serving_size > 0 && (
                                     <Typography
-                                        variant="caption"
                                         sx={{
+                                            fontSize: '0.7rem',
                                             color: '#66BB6A',
                                             fontWeight: 600,
                                         }}
@@ -296,8 +294,8 @@ export default function FoodSearchInput({ value, onChange, targetCalories = null
                                     </Typography>
                                 )}
                                 <Typography
-                                    variant="caption"
                                     sx={{
+                                        fontSize: '0.7rem',
                                         color: '#FF8243',
                                         fontWeight: 700,
                                     }}
