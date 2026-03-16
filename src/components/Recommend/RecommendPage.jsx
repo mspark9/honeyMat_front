@@ -568,9 +568,7 @@ const RecommendPage = () => {
       {/* 좌측: AI 챗봇 영역 */}
       <div
         className={`min-w-0 bg-white rounded-2xl border border-gray-100 flex flex-col overflow-hidden shadow-sm ${
-          isNarrowMobile
-            ? 'hidden'
-            : 'max-[1299px]:w-1/2 min-[1300px]:flex-1'
+          isNarrowMobile ? 'hidden' : 'max-[1299px]:w-1/2 min-[1300px]:flex-1'
         }`}
       >
         {renderChatbotPanel()}
@@ -655,10 +653,10 @@ const RecommendPage = () => {
                   isUltraNarrowMobile
                     ? 'pl-2 pr-1.5 py-2 text-[11px] min-w-[98px]'
                     : isNarrowMobile
-                    ? 'pl-3 pr-2.5 py-2 text-[13px] min-w-[132px]'
-                    : isHalfSplitLayout
-                    ? 'pl-2.5 pr-2 py-2 text-[12px] min-w-[114px]'
-                    : 'pl-4 pr-3 py-2.5 text-[14px] min-w-[190px]'
+                      ? 'pl-3 pr-2.5 py-2 text-[13px] min-w-[132px]'
+                      : isHalfSplitLayout
+                        ? 'pl-2.5 pr-2 py-2 text-[12px] min-w-[114px]'
+                        : 'pl-4 pr-3 py-2.5 text-[14px] min-w-[190px]'
                 }`}
               >
                 <div
@@ -681,10 +679,10 @@ const RecommendPage = () => {
                       isUltraNarrowMobile
                         ? 'text-[11px]'
                         : isNarrowMobile
-                        ? 'text-[13px]'
-                        : isHalfSplitLayout
-                          ? 'text-[12px]'
-                          : 'text-[13px]'
+                          ? 'text-[13px]'
+                          : isHalfSplitLayout
+                            ? 'text-[12px]'
+                            : 'text-[13px]'
                     }
                   >
                     {sortType === 'latest'
@@ -724,10 +722,10 @@ const RecommendPage = () => {
                         isUltraNarrowMobile
                           ? 'px-2.5 py-2.5 text-[11px]'
                           : isNarrowMobile
-                          ? 'px-3 py-2.5 text-[13px]'
-                          : isHalfSplitLayout
-                          ? 'px-3 py-2 text-[12px]'
-                          : 'px-4 py-2.5 text-[13px]'
+                            ? 'px-3 py-2.5 text-[13px]'
+                            : isHalfSplitLayout
+                              ? 'px-3 py-2 text-[12px]'
+                              : 'px-4 py-2.5 text-[13px]'
                       } ${
                         sortType === opt.value
                           ? 'text-[#FF8243] font-bold bg-orange-100/50'
@@ -850,7 +848,11 @@ const RecommendPage = () => {
       </div>
 
       {isNarrowMobile && isMobileChatbotOpen && (
-        <div className="fixed inset-0 z-50 bg-black/35 flex" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 bg-black/35 flex"
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="w-[92%] max-w-[420px] h-full bg-white shadow-2xl border-r border-gray-200 flex flex-col">
             {renderChatbotPanel(true)}
           </div>

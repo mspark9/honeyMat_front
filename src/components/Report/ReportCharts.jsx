@@ -16,32 +16,38 @@ import {
   Bar,
 } from 'recharts';
 
-// 방사형 차트
-export const NutrientRadarChart = ({ data }) => {
+// 1. 방사형 차트 (NutrientRadarChart)
+export const NutrientRadarChart = ({
+  data,
+  angleTickFontSize = 14,
+  radiusTickFontSize = 12,
+  outerRadius = '90%',
+  chartHeight = 357,
+}) => {
   const maxValue = Math.max(...data.map((item) => item.value || 0), 0);
   const axisMax =
     maxValue > 0 ? Math.max(100, Math.ceil(maxValue / 10) * 10) : 100;
 
   return (
-    <ResponsiveContainer width="100%" height={357}>
+    <ResponsiveContainer width="100%" height={chartHeight}>
       <RadarChart
         cx="50%"
         cy="50%"
-        outerRadius="90%"
+        outerRadius={outerRadius}
         data={data}
         margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
       >
         <PolarGrid stroke="#d0d0d0" opacity={0.8} />
         <PolarAngleAxis
           dataKey="subject"
-          tick={{ fill: '#1E2923', fontSize: 14 }}
+          tick={{ fill: '#1E2923', fontSize: angleTickFontSize }}
         />
         <PolarRadiusAxis
           angle={90}
           domain={[0, axisMax]}
           tick={{
             fill: '#777',
-            fontSize: 12,
+            fontSize: radiusTickFontSize,
             dy: 8,
             dx: -8,
           }}
@@ -59,8 +65,13 @@ export const NutrientRadarChart = ({ data }) => {
   );
 };
 
-// 7일간 변화 추이
-export const WeeklyLineChart = ({ data }) => {
+// 2. 7일간 변화 추이 차트 (WeeklyLineChart)
+export const WeeklyLineChart = ({
+  data,
+  maximizeForSmallScreen = false,
+  legendFontSize = 14,
+  compactTextForNarrow = false,
+}) => {
   // 활성화된 시리즈 상태 관리
   const [activeSeries, setActiveSeries] = useState([
     'kcal',
@@ -91,6 +102,7 @@ export const WeeklyLineChart = ({ data }) => {
           cursor: 'pointer',
           marginLeft: '3px',
           fontWeight: '400',
+          fontSize: `${legendFontSize}px`,
         }}
       >
         {value}
@@ -98,7 +110,9 @@ export const WeeklyLineChart = ({ data }) => {
     );
   };
 
-  // 라인 생성 헬퍼 함수 (탄단지당)
+  const axisFontSize = compactTextForNarrow ? 11 : 12;
+
+  // 라인 생성 헬퍼 함수
   const createLine = (dataKey, color, label) => {
     const isActive = activeSeries.includes(dataKey);
     return (
@@ -118,7 +132,7 @@ export const WeeklyLineChart = ({ data }) => {
     );
   };
 
-  // 막대 생성 헬퍼 함수 (칼로리)
+  // 막대 생성 헬퍼 함수 (칼로리 전용)
   const createBar = (dataKey, color) => {
     const isActive = activeSeries.includes(dataKey);
     return (
@@ -145,45 +159,73 @@ export const WeeklyLineChart = ({ data }) => {
     { dataKey: 'protein', value: '단백질', color: '#66BB6A', type: 'circle' },
     { dataKey: 'fat', value: '지방', color: '#EF5350', type: 'circle' },
     { dataKey: 'sugars', value: '당', color: '#AB47BC', type: 'circle' },
-    {
-      dataKey: 'kcal',
-      value: '칼로리',
-      color: '#ff9058',
-      type: 'square',
-    },
+    { dataKey: 'kcal', value: 'kcal', color: '#ff9058', type: 'square' },
   ].map((item) => ({
     ...item,
     inactive: !activeSeries.includes(item.dataKey),
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={343}>
+    <ResponsiveContainer
+      width="100%"
+      height={maximizeForSmallScreen ? 390 : 353}
+    >
       <ComposedChart
         data={data}
-        margin={{ top: 5, right: 35, left: 0, bottom: 5 }}
+        margin={
+          maximizeForSmallScreen
+            ? { top: 0, right: 6, left: 0, bottom: 0 }
+            : { top: 5, right: 35, left: 0, bottom: 5 }
+        }
       >
         <CartesianGrid
           strokeDasharray="3 3"
           vertical={false}
           stroke="#f0f0f0"
         />
-        <XAxis dataKey="day" />
-        <YAxis yAxisId="left" tick={{ fill: '#ff9058', fontWeight: 700 }} />
-        <YAxis yAxisId="right" orientation="right" />
-        <Tooltip />
+        <XAxis
+          dataKey="day"
+          tick={{
+            fontSize: maximizeForSmallScreen ? 11 : axisFontSize,
+          }}
+        />
+        <YAxis
+          yAxisId="left"
+          tick={
+            maximizeForSmallScreen
+              ? { fill: '#ff9058', fontWeight: 700, fontSize: 11 }
+              : { fill: '#ff9058', fontWeight: 700, fontSize: axisFontSize }
+          }
+        />
+        <YAxis
+          yAxisId="right"
+          orientation="right"
+          tick={{ fontSize: axisFontSize }}
+        />
+        <Tooltip
+          contentStyle={{
+            fontSize: compactTextForNarrow ? '12px' : '13px',
+          }}
+          itemStyle={{
+            fontSize: compactTextForNarrow ? '12px' : '13px',
+          }}
+          labelStyle={{
+            fontSize: compactTextForNarrow ? '12px' : '13px',
+          }}
+        />
         <Legend
           onClick={handleLegendClick}
           formatter={renderCustomLegendText}
           payload={legendPayload}
-          iconSize={12} // ★ 중요: 아이콘의 가로세로 길이를 동일하게 고정 (정사각형화)
+          iconSize={maximizeForSmallScreen ? 10 : 12}
           wrapperStyle={{
-            paddingTop: '15px',
+            paddingTop: maximizeForSmallScreen ? '6px' : '15px',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
           }}
         />
-        {createBar('kcal', '#ff9058', 'kcal')}
+        {createBar('kcal', '#ff9058')}
         {createLine('carbohydrate', '#FFA726', '탄수화물')}
         {createLine('protein', '#66BB6A', '단백질')}
         {createLine('fat', '#EF5350', '지방')}
