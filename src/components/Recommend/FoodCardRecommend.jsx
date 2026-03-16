@@ -11,6 +11,7 @@ const FoodCardRecommend = ({
   isNutrientSplitViewport = false,
   forceSingleRowNutrients = false,
   forceLargeSelectButton = false,
+  isAtMost450 = false,
   isFavorite,
   onToggleFavorite,
   onDelete,
@@ -185,9 +186,13 @@ const FoodCardRecommend = ({
                   : 'col-span-1'
               }`}
             >
-              <span className="text-[12.5px] mb-2">{item.label}</span>
+              <span className={`${isAtMost450 ? 'text-[11.5px]' : 'text-[12.5px]'} mb-2`}>
+                {item.label}
+              </span>
               <span
-                className={`flex items-center justify-center text-[13.5px] font-bold h-5 ${item.color || 'text-gray-700'} `}
+                className={`flex items-center justify-center ${
+                  isAtMost450 ? 'text-[12.5px]' : 'text-[13.5px]'
+                } font-bold h-5 ${item.color || 'text-gray-700'} `}
               >
                 {isEmpty ? (
                   <MdOutlineHorizontalRule size={20} color="364153" />
