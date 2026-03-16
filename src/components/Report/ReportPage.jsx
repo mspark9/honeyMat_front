@@ -2,6 +2,7 @@ import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { FaPlus, FaMinus, FaPlusMinus } from 'react-icons/fa6';
+import { PiChefHat } from 'react-icons/pi';
 import { Loader2, Stethoscope } from 'lucide-react';
 import { NutrientRadarChart, WeeklyLineChart } from './ReportCharts';
 import ReportCards from './ReportCards';
@@ -57,6 +58,9 @@ const calculateWeeklyAverageIntake = (records) => {
 const ReportPage = () => {
   const reportRef = useRef(null);
   const { profile } = useProfile(); // 프로필 정보(닉네임) 가져오기
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1920,
+  );
   const [dailyData, setDailyData] = useState([]);
   const [lastWeekData, setLastWeekData] = useState([]); // 변화량 계산용
   const [goals, setGoals] = useState(null);
@@ -69,6 +73,8 @@ const ReportPage = () => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isFoodListLoading, setIsFoodListLoading] = useState(false);
   const [aiReviewRefreshToken, setAiReviewRefreshToken] = useState(0);
+  const [isAiReviewExpandedAt1800, setIsAiReviewExpandedAt1800] =
+    useState(false);
 
   // 현재 주 및 지난 주 날짜 계산
   const today = new Date();
@@ -93,6 +99,14 @@ const ReportPage = () => {
     const userKey = profile?.id || profile?.nickname || 'anonymous';
     return `report-ai-review:${userKey}`;
   }, [profile?.id, profile?.nickname]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -153,6 +167,26 @@ const ReportPage = () => {
     };
     fetchReport();
   }, [startDateStr, endDateStr, lastWeekStart, lastWeekEnd]);
+
+  const isBetween1400And1800 = viewportWidth <= 1800 && viewportWidth > 1400;
+  const isAtMost1400 = viewportWidth <= 1400;
+  const isAtMost870 = viewportWidth <= 870;
+  const isAtMost800 = viewportWidth <= 800;
+  const isAtMost600 = viewportWidth <= 600;
+  const isAtMost500 = viewportWidth <= 500;
+  const isAtMost450 = viewportWidth < 450;
+  const isAtMost350 = viewportWidth <= 350;
+  const isAtMost380 = viewportWidth <= 380;
+  const isAtMost400 = viewportWidth <= 400;
+  const isAtMost1180 = viewportWidth <= 1180;
+  const isAtMost1800 = viewportWidth <= 1800;
+  const shouldShowAiSidebar = !isAtMost1800;
+  const nicknameText = profile?.nickname || '??';
+  const shouldMarqueeNickname = isAtMost350
+    ? nicknameText.length >= 4
+    : isAtMost450
+      ? nicknameText.length >= 5
+      : nicknameText.length >= 7;
 
   // 이번 주 평균 점수
   const averageScore = useMemo(() => {
@@ -714,32 +748,213 @@ const ReportPage = () => {
   }
 
   return (
-    <div className="p-2 min-h-screen">
+    <div className={`${isAtMost600 ? 'py-1.5 px-2' : 'p-2'} min-h-screen`}>
+      <style>{`
+        @keyframes reportNicknameMarquee {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
       <div
         ref={reportRef}
-        className="bg-[#F2F9F5] text-[#1E2923] w-full mx-auto rounded-2xl border border-gray-100 p-5"
+        className={`bg-[#F2F9F5] text-[#1E2923] w-full mx-auto rounded-2xl border border-gray-100 ${
+          isAtMost600 ? 'px-5 py-4' : 'p-5'
+        }`}
       >
-        <div className="grid grid-cols-3 gap-5">
-          <div className="col-span-2 flex flex-col gap-5">
+        <div
+          className={
+            shouldShowAiSidebar
+              ? 'grid grid-cols-3 gap-5'
+              : `grid grid-cols-1 ${isAtMost600 ? 'gap-3' : 'gap-5'}`
+          }
+        >
+          <div
+            className={
+              shouldShowAiSidebar
+                ? 'col-span-2 flex flex-col gap-5'
+                : `col-span-1 flex flex-col ${isAtMost600 ? 'gap-3' : 'gap-5'}`
+            }
+          >
             {/* 상단 요약 카드 */}
-            <div className="bg-white flex justify-between items-center p-5 rounded-xl shadow-sm border-l-8 border-[#FF8243]">
-              <h2 className="text-gray-700 text-[19px] mr-4">
-                <span className="text-gray-700 font-semibold text-[22px] pr-1">
-                  {profile?.nickname || '??'}
+            <div
+              className={`bg-white ${
+                isAtMost450 ? 'px-2 py-2' : isAtMost600 ? 'px-5 py-4' : 'p-5'
+              } rounded-xl shadow-sm border-l-8 border-[#FF8243] ${
+                isAtMost600 ? 'block' : 'flex justify-between items-center'
+              }`}
+            >
+              <h2
+                className={`text-gray-700 ${
+                  isAtMost380
+                    ? 'text-[12px]'
+                    : isAtMost450
+                    ? 'text-[12.5px]'
+                    : isAtMost500
+                    ? 'text-[13px]'
+                    : isAtMost800
+                      ? 'text-[15px]'
+                      : isAtMost1400
+                        ? 'text-[17px]'
+                        : 'text-[19px]'
+                } ${isAtMost500 ? '' : 'mr-2'}`}
+              >
+                <span
+                  className={`text-gray-700 font-semibold ${
+                    isAtMost380
+                      ? 'text-[14px]'
+                      : isAtMost450
+                      ? 'text-[14.5px]'
+                      : isAtMost500
+                      ? 'text-[16px]'
+                      : isAtMost800
+                      ? 'text-[18px]'
+                      : isAtMost1400
+                        ? 'text-[20px]'
+                        : 'text-[22px]'
+                  } pr-1 inline-block align-bottom`}
+                >
+                  {shouldMarqueeNickname ? (
+                    <span className="inline-block w-[7ch] overflow-hidden whitespace-nowrap align-bottom">
+                      <span
+                        className="inline-flex items-center"
+                        style={{
+                          animation:
+                            'reportNicknameMarquee 7s linear infinite',
+                        }}
+                      >
+                        <span>{nicknameText}</span>
+                        <span className="mx-5">{nicknameText}</span>
+                      </span>
+                    </span>
+                  ) : (
+                    nicknameText
+                  )}
                 </span>
                 님의 주간 영양 점수는{' '}
-                <span className="text-[#FF8243] font-bold text-[23px] pr-1">
+                <span
+                  className={`text-[#FF8243] font-bold ${
+                    isAtMost380
+                      ? 'text-[15px]'
+                      : isAtMost450
+                      ? 'text-[15.5px]'
+                      : isAtMost500
+                        ? 'text-[17px]'
+                        : isAtMost800
+                          ? 'text-[19px]'
+                          : isAtMost1400
+                            ? 'text-[21px]'
+                            : 'text-[23px]'
+                  } pr-0.5`}
+                >
                   {averageScore}점
                 </span>
                 입니다.
               </h2>
-              <div className="flex items-center gap-3 shrink-0">
+              {!isAtMost600 && (
+                <div className="flex items-center gap-2 shrink-0">
+                  {!isAtMost800 && (
+                    <div className="flex items-center whitespace-nowrap gap-2">
+                      <span
+                        className={`text-gray-600 ${
+                        isAtMost380
+                          ? 'text-[12px]'
+                          : isAtMost450
+                          ? 'text-[12.5px]'
+                          : isAtMost1400
+                            ? 'text-[13px]'
+                            : 'text-[15px]'
+                        } mt-0.5`}
+                      >
+                        지난 주 대비
+                      </span>
+                      <div
+                        className={`flex items-center gap-0.5 font-bold ${
+                          isAtMost380
+                            ? 'text-[15px]'
+                            : isAtMost450
+                            ? 'text-[15.5px]'
+                            : isAtMost1400
+                              ? 'text-[17px]'
+                              : 'text-[19px]'
+                        } ${
+                          diffLastWeek > 0
+                            ? 'text-emerald-600'
+                            : diffLastWeek < 0
+                              ? 'text-sky-600'
+                              : 'text-gray-600'
+                        }`}
+                      >
+                        {diffLastWeek > 0 ? (
+                          <FaPlus
+                            size={isAtMost450 ? 10 : isAtMost500 ? 11 : 13}
+                            className="mt-0.5"
+                          />
+                        ) : diffLastWeek < 0 ? (
+                          <FaMinus
+                            size={isAtMost450 ? 10 : isAtMost500 ? 11 : 13}
+                            className="mt-0.5"
+                          />
+                        ) : (
+                          <FaPlusMinus
+                            size={isAtMost450 ? 10 : isAtMost500 ? 11 : 13}
+                            className="mt-0.5"
+                          />
+                        )}
+                        {Math.abs(diffLastWeek)}점
+                      </div>
+                    </div>
+                  )}
+                  {isAtMost1800 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setIsAiReviewExpandedAt1800((prev) => !prev)
+                      }
+                      className={`rounded-xl border border-[#FF8243]/40 bg-[#FFF4ED] px-2 py-1 ${
+                        isAtMost380
+                          ? 'text-[11px]'
+                          : isAtMost450
+                          ? 'text-[11.5px]'
+                          : isAtMost500
+                            ? 'text-[12px]'
+                            : 'text-sm'
+                      } font-semibold text-[#E46D2E] hover:bg-[#FFEADB] transition-colors flex items-center gap-1.5`}
+                    >
+                      {!isAiReviewExpandedAt1800 && (
+                        <PiChefHat
+                          size={isAtMost450 ? 20 : isAtMost500 ? 21 : 23}
+                          color="#FF8243"
+                        />
+                      )}
+                      리뷰
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {isAtMost600 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-2 py-1 flex items-center justify-between">
                 <div className="flex items-center whitespace-nowrap gap-2">
-                  <span className="text-gray-600 text-[15px] mt-0.5">
+                  <span
+                    className={`text-gray-600 ${
+                      isAtMost380
+                        ? 'text-[12px]'
+                        : isAtMost450
+                        ? 'text-[12.5px]'
+                        : 'text-[13px]'
+                    } mt-0.5`}
+                  >
                     지난 주 대비
                   </span>
                   <div
-                    className={`flex items-center gap-0.5 font-bold text-[19px] ${
+                    className={`flex items-center gap-0.5 font-bold ${
+                      isAtMost380
+                        ? 'text-[15px]'
+                        : isAtMost450
+                        ? 'text-[15.5px]'
+                        : 'text-[17px]'
+                    } ${
                       diffLastWeek > 0
                         ? 'text-emerald-600'
                         : diffLastWeek < 0
@@ -748,68 +963,209 @@ const ReportPage = () => {
                     }`}
                   >
                     {diffLastWeek > 0 ? (
-                      <FaPlus size={13} className="mt-0.5" />
+                      <FaPlus
+                        size={isAtMost450 ? 10 : isAtMost500 ? 11 : 13}
+                        className="mt-0.5"
+                      />
                     ) : diffLastWeek < 0 ? (
-                      <FaMinus size={13} className="mt-0.5" />
+                      <FaMinus
+                        size={isAtMost450 ? 10 : isAtMost500 ? 11 : 13}
+                        className="mt-0.5"
+                      />
                     ) : (
-                      <FaPlusMinus size={13} className="mt-0.5" />
+                      <FaPlusMinus
+                        size={isAtMost450 ? 10 : isAtMost500 ? 11 : 13}
+                        className="mt-0.5"
+                      />
                     )}
-                    {Math.abs(diffLastWeek)}
+                    {Math.abs(diffLastWeek)}점
                   </div>
-                  <span className="text-gray-500 text-[17px] -mt-0.5 -ml-1">
-                    점
-                  </span>
                 </div>
+                {isAtMost1800 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAiReviewExpandedAt1800((prev) => !prev)}
+                    className={`rounded-xl border border-[#FF8243]/40 bg-[#FFF4ED] px-2 py-1 ${
+                      isAtMost380
+                        ? 'text-[11px]'
+                        : isAtMost450
+                        ? 'text-[11.5px]'
+                        : isAtMost500
+                        ? 'text-[12px]'
+                        : 'text-sm'
+                    } font-semibold text-[#E46D2E] hover:bg-[#FFEADB] transition-colors flex items-center gap-1.5`}
+                  >
+                    {!isAiReviewExpandedAt1800 && (
+                      <PiChefHat
+                        size={isAtMost450 ? 20 : isAtMost500 ? 21 : 23}
+                        color="#FF8243"
+                      />
+                    )}
+                    리뷰
+                  </button>
+                )}
               </div>
-            </div>
+            )}
 
             {/* 영양 밸런스, 과잉/결핍 섹션 */}
-            <div className="grid grid-cols-2 gap-5">
-              <div className="col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h3 className="font-bold mb-6 text-gray-800 border-b pb-2">
+            <div
+              className={`grid gap-5 ${
+                isAtMost870
+                  ? 'grid-cols-1'
+                  : isAtMost1400
+                    ? 'grid-cols-[3fr_2fr]'
+                    : 'grid-cols-2'
+              }`}
+            >
+              <div
+                className={`col-span-1 bg-white ${
+                  isAtMost500 ? 'p-4' : isAtMost600 ? 'px-6 py-5' : 'p-6'
+                } rounded-2xl shadow-sm border border-gray-100`}
+              >
+                <h3
+                  className={`font-bold ${
+                    isAtMost500 ? 'mb-4' : isAtMost600 ? 'mb-5' : 'mb-6'
+                  } text-gray-800 border-b ${isAtMost600 ? 'pb-1' : 'pb-2'}`}
+                >
                   영양 밸런스
                 </h3>
-                <NutrientRadarChart data={radarData} />
+                <NutrientRadarChart
+                  data={radarData}
+                  angleTickFontSize={
+                    isAtMost450 ? 9 : isAtMost600 ? 11 : isAtMost1400 ? 13 : 14
+                  }
+                  radiusTickFontSize={isAtMost600 ? 10 : 12}
+                  outerRadius={isAtMost600 ? '80%' : '90%'}
+                  chartHeight={isAtMost500 ? 300 : 357}
+                />
               </div>
 
-              <div className="col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-                <h3 className="font-bold mb-4 text-gray-800 border-b pb-3">
+              <div
+                className={`col-span-1 bg-white ${
+                  isAtMost600 ? 'px-6 py-5' : 'p-6'
+                } rounded-2xl shadow-sm border border-gray-100 flex flex-col`}
+              >
+                <h3
+                  className={`font-bold mb-1 text-gray-800 border-b ${
+                    isAtMost1400
+                      ? isAtMost600
+                        ? 'pb-0'
+                        : 'pb-0'
+                      : isAtMost600
+                        ? 'pb-2'
+                        : 'pb-3'
+                  }`}
+                >
                   과잉/결핍 영양소
                 </h3>
                 <div className="flex-1 ">
-                  <ReportCards nutritionData={weeklyNutritionData} />
+                  <ReportCards
+                    nutritionData={weeklyNutritionData}
+                    isBetween1400And1800={isBetween1400And1800}
+                    isAtMost1400={isAtMost1400}
+                    isAtMost1180={isAtMost1180}
+                    enableSingleSelect={
+                      (isAtMost1400 && !isAtMost870) || isAtMost500
+                    }
+                    compactYFor600={isAtMost600}
+                    compactFor500={isAtMost500}
+                  />
                 </div>
               </div>
             </div>
 
             {/* 7일간 변화 추이 */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h3 className="font-bold mb-6 text-gray-800 border-b pb-2">
+            <div
+              className={`bg-white ${
+                isAtMost600 ? 'px-6 py-5' : 'p-6'
+              } rounded-2xl shadow-sm border border-gray-100`}
+            >
+              <h3
+                className={`font-bold ${
+                  isAtMost600 ? 'mb-5' : 'mb-6'
+                } text-gray-800 border-b ${isAtMost600 ? 'pb-1' : 'pb-2'}`}
+              >
                 7일간 변화 추이
               </h3>
-              <WeeklyLineChart data={lineData} />
+              <div
+                className={
+                  isAtMost800
+                    ? 'overflow-x-auto [scrollbar-color:#FF8243_#FFEADB] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:bg-[#FF8243] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-[#FFEADB]'
+                    : ''
+                }
+              >
+                <div className={isAtMost800 ? 'min-w-[760px]' : ''}>
+                  <WeeklyLineChart
+                    data={lineData}
+                    maximizeForSmallScreen={isAtMost400}
+                    legendFontSize={isAtMost800 ? 13 : 14}
+                    compactTextForNarrow={isAtMost800}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
           {/* AI 리뷰 사이드바 + 영양 결핍 체크 */}
-          <div className="col-span-1 flex flex-col gap-7">
-            <AIReviewSection
-              aiReview={aiReview}
-              isAiLoading={isAiLoading}
-              isFoodListLoading={isFoodListLoading}
-              foodList={foodList}
-              onResetRecommendations={handleResetRecommendations}
-              onRefreshAiReport={handleRefreshAiReport}
-            />
-          </div>
+          {shouldShowAiSidebar && (
+            <div className="col-span-1 flex flex-col gap-7">
+              <AIReviewSection
+                aiReview={aiReview}
+                isAiLoading={isAiLoading}
+                isFoodListLoading={isFoodListLoading}
+                foodList={foodList}
+                onResetRecommendations={handleResetRecommendations}
+                onRefreshAiReport={handleRefreshAiReport}
+              />
+            </div>
+          )}
         </div>
+        {isAtMost1800 && isAiReviewExpandedAt1800 && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/25 z-40"
+              onClick={() => setIsAiReviewExpandedAt1800(false)}
+            />
+            <div className="fixed top-[3px] right-5 bottom-[3px] w-[min(480px,92vw)] z-50 overflow-hidden">
+              <div className="h-full flex flex-col">
+                <div
+                  className={`flex justify-end ${isAtMost600 ? 'mb-1' : 'mb-2'}`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setIsAiReviewExpandedAt1800(false)}
+                    className="rounded-lg bg-white/95 border border-gray-200 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-white shadow-sm"
+                  >
+                    닫기
+                  </button>
+                </div>
+                <div className="overflow-y-auto pr-1">
+                  <AIReviewSection
+                    aiReview={aiReview}
+                    isAiLoading={isAiLoading}
+                    isFoodListLoading={isFoodListLoading}
+                    foodList={foodList}
+                    onResetRecommendations={handleResetRecommendations}
+                    onRefreshAiReport={handleRefreshAiReport}
+                  />
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* PDF 저장 버튼 */}
-      <div className="items-center justify-center mx-auto flex mb-4 mt-4">
+      <div
+        className={`items-center justify-center mx-auto flex ${
+          isAtMost600 ? 'mb-3 mt-3' : 'mb-4 mt-4'
+        }`}
+      >
         <button
           onClick={handleDownloadPdf}
-          className="bg-[#FF8243] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#ff8243c9] transition-all shadow-lg active:scale-95"
+          className={`bg-[#FF8243] text-white px-6 ${
+            isAtMost600 ? 'py-2' : 'py-3'
+          } rounded-lg font-bold hover:bg-[#ff8243c9] transition-all shadow-lg active:scale-95`}
         >
           PDF로 저장
         </button>
