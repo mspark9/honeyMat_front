@@ -314,31 +314,6 @@ function MealCard({ meal, data, isToday, dateStr, nutrientConfig }) {
             <Collapse in={open}>
                 <Divider />
                 <Box sx={{ p: 2.5 }}>
-                    {/* AI 분석 사진 (ai_scan_id가 있는 경우 음식목록 위에 한 번만 표시) */}
-                    {aiScanImage && (
-                        <Box sx={{ mb: 2 }}>
-                            <Typography
-                                variant="caption"
-                                fontWeight={600}
-                                color="text.secondary"
-                                sx={{ display: 'block', mb: 0.5 }}
-                            >
-                                AI 분석 사진
-                            </Typography>
-                            <Box
-                                component="img"
-                                src={aiScanImage}
-                                alt="AI 분석 사진"
-                                sx={{
-                                    width: 80,
-                                    height: 80,
-                                    objectFit: 'cover',
-                                    borderRadius: 1.5,
-                                    border: `2px solid ${color}`,
-                                }}
-                            />
-                        </Box>
-                    )}
                     {/* 음식 리스트 */}
                     <Typography
                         variant="body2"
@@ -391,12 +366,14 @@ function MealCard({ meal, data, isToday, dateStr, nutrientConfig }) {
                                             </Typography>
                                         </Box>
                                     </Box>
-                                    {/* 사진: 공통 이미지로 표시된 경우 제외, 수동 추가 음식만 개별 표시 */}
-                                    {food.image && !food.aiScanId && !hasSharedImage && (
+                                    {/* 사진: 수동 추가 음식 개별 이미지 or AI 스캔 음식 자체 이미지 (공유 이미지면 첫 번째 row에만) */}
+                                    {((food.image && !food.aiScanId) ||
+                                        (food.aiScanId && food.image && !hasSharedImage) ||
+                                        (i === 0 && hasSharedImage && aiScanImage)) && (
                                         <Box sx={{ mt: 1 }}>
                                             <Box
                                                 component="img"
-                                                src={food.image}
+                                                src={(i === 0 && hasSharedImage && aiScanImage) ? aiScanImage : food.image}
                                                 alt={`${food.name} 사진`}
                                                 sx={{
                                                     width: 80,
