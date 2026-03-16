@@ -168,7 +168,7 @@ export const WeeklyLineChart = ({
   return (
     <ResponsiveContainer
       width="100%"
-      height={maximizeForSmallScreen ? 380 : 343}
+      height={maximizeForSmallScreen ? 390 : 353}
     >
       <ComposedChart
         data={data}
