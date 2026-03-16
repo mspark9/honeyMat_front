@@ -973,8 +973,20 @@ export default function Setting() {
                                       }}
                                       sx={{
                                         width: 150,
+                                        '& input[type="time"]': {
+                                          WebkitAppearance: 'none',
+                                        },
                                         '& input[type="time"]::-webkit-calendar-picker-indicator': {
                                           display: 'none',
+                                          WebkitAppearance: 'none',
+                                        },
+                                        '& input[type="time"]::-webkit-inner-spin-button': {
+                                          display: 'none',
+                                          WebkitAppearance: 'none',
+                                        },
+                                        '& input[type="time"]::-webkit-clear-button': {
+                                          display: 'none',
+                                          WebkitAppearance: 'none',
                                         },
                                         ...textFieldFocusStyle,
                                       }}
