@@ -7,15 +7,22 @@ import { api } from '../../api/auth.js';
 
 const FoodCardRecommend = ({
   food,
+  isHalfSplitLayout = false,
+  isNutrientSplitViewport = false,
+  forceSingleRowNutrients = false,
+  forceLargeSelectButton = false,
   isFavorite,
   onToggleFavorite,
   onDelete,
   onToggleCheck,
 }) => {
+  const COMPACT_CARD_WIDTH = 520;
   const [isOverflowing, setIsOverflowing] = useState(false);
   const [tags, setTags] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCompact, setIsCompact] = useState(false);
 
+  const cardRef = useRef(null);
   const titleRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -31,7 +38,7 @@ const FoodCardRecommend = ({
       setIsLoading(true);
       try {
         const data = await api.post('/api/ai/food-tags', {
-          name: food.name,
+          foodname: food.name,
           kcal: food.kcal,
           carbs: food.carbs,
           protein: food.protein,
@@ -59,10 +66,39 @@ const FoodCardRecommend = ({
     }
   }, [food.name, isLoading]);
 
+  useEffect(() => {
+    if (!cardRef.current) return;
+
+    const updateCardResponsiveState = () => {
+      const cardWidth = cardRef.current?.clientWidth || 0;
+      setIsCompact(cardWidth > 0 && cardWidth < COMPACT_CARD_WIDTH);
+
+      if (titleRef.current && containerRef.current) {
+        const hasOverflow =
+          titleRef.current.scrollWidth > containerRef.current.clientWidth;
+        setIsOverflowing(hasOverflow);
+      }
+    };
+
+    updateCardResponsiveState();
+
+    const observer = new ResizeObserver(() => {
+      updateCardResponsiveState();
+    });
+    observer.observe(cardRef.current);
+
+    return () => observer.disconnect();
+  }, []);
+
   const navigate = useNavigate();
+  const shouldSplitNutrients =
+    isNutrientSplitViewport && !forceSingleRowNutrients;
 
   return (
-    <div className="w-full bg-white rounded-2xl py-4 px-5 border border-gray-100 shadow-sm relative flex flex-col mb-4 hover:shadow-md transition-shadow">
+    <div
+      ref={cardRef}
+      className="w-full bg-white rounded-2xl py-4 px-5 border border-gray-100 shadow-sm relative flex flex-col mb-4 hover:shadow-md transition-shadow"
+    >
       {/* 상단: 제목 및 즐겨찾기 */}
       <div className="flex justify-between items-start mb-3 gap-4">
         <div
@@ -84,18 +120,26 @@ const FoodCardRecommend = ({
             e.stopPropagation();
             onToggleFavorite(food.id);
           }}
-          className="focus:outline-none p-1.5"
+          className={`focus:outline-none ${isCompact ? 'p-1' : 'p-1.5'}`}
         >
           {isFavorite ? (
-            <FaStar size={23} color="#FF8243" />
+            <FaStar
+              className={isCompact ? 'w-5 h-5' : 'w-[23px] h-[23px]'}
+              color="#FF8243"
+            />
           ) : (
-            <FaRegStar size={23} color="#FF8243" />
+            <FaRegStar
+              className={isCompact ? 'w-5 h-5' : 'w-[23px] h-[23px]'}
+              color="#FF8243"
+            />
           )}
         </button>
       </div>
 
       {/* 영양성분 그리드 */}
-      <div className="grid grid-cols-5 gap-2 mb-3">
+      <div
+        className={`grid ${shouldSplitNutrients ? 'grid-cols-6' : 'grid-cols-5'} gap-2 mb-3`}
+      >
         {[
           {
             label: '칼로리',
@@ -133,7 +177,13 @@ const FoodCardRecommend = ({
           return (
             <div
               key={idx}
-              className="flex flex-col items-center justify-center p-2 bg-[#F9FBFA] rounded-xl border border-gray-50"
+              className={`flex flex-col items-center justify-center p-2 bg-[#F9FBFA] rounded-xl border border-gray-50 ${
+                shouldSplitNutrients
+                  ? idx < 2
+                    ? 'col-span-3'
+                    : 'col-span-2'
+                  : 'col-span-1'
+              }`}
             >
               <span className="text-[12.5px] mb-2">{item.label}</span>
               <span
@@ -153,18 +203,24 @@ const FoodCardRecommend = ({
       <div className="h-px bg-white mb-1" />
 
       {/* 태그 영역 */}
-      <div className="flex flex-wrap gap-1.5 mb-2 min-h-[26px]">
+      <div
+        className={`flex gap-1.5 mb-2 min-h-[26px] pb-1 ${
+          isCompact
+            ? 'flex-nowrap overflow-x-auto'
+            : 'flex-wrap overflow-visible'
+        }`}
+      >
         {isLoading && tags.length === 0 ? (
           <>
-            <div className="w-16 h-[26px] bg-gray-100 rounded-md animate-pulse" />
-            <div className="w-22 h-[26px] bg-gray-100 rounded-md animate-pulse" />
-            <div className="w-10 h-[26px] bg-gray-100 rounded-md animate-pulse" />
+            <div className="w-16 h-[26px] bg-gray-100 rounded-md animate-pulse shrink-0" />
+            <div className="w-22 h-[26px] bg-gray-100 rounded-md animate-pulse shrink-0" />
+            <div className="w-10 h-[26px] bg-gray-100 rounded-md animate-pulse shrink-0" />
           </>
         ) : (
           tags.map((tag, idx) => (
             <span
               key={idx}
-              className="px-2.5 py-1 bg-gray-100 text-gray-500 text-[12px] font-bold rounded-md flex items-center justify-center animate-fadeIn"
+              className="px-2.5 py-1 bg-gray-100 text-gray-500 text-[12px] font-bold rounded-md flex items-center justify-center animate-fadeIn shrink-0"
             >
               {tag}
             </span>
@@ -174,18 +230,20 @@ const FoodCardRecommend = ({
       <div className="h-px bg-white mb-3" />
 
       {/* 하단: 삭제 및 선택 버튼 */}
-      <div className="flex items-center gap-28">
+      <div className={`flex items-center ${isCompact ? 'gap-3' : 'gap-28'}`}>
         <button
           onClick={(e) => {
             e.stopPropagation();
             onDelete(food.id, food.name);
           }}
-          className="p-1 text-gray-300 hover:text-gray-700 mt-1"
+          className={`text-gray-300 hover:text-gray-700 mt-1 ${
+            isCompact ? 'p-0.5' : 'p-1'
+          }`}
         >
-          <TbTrashX size={23} />
+          <TbTrashX className={isCompact ? 'w-5 h-5' : 'w-[23px] h-[23px]'} />
         </button>
 
-        <div className="flex flex-1 gap-5">
+        <div className={`flex flex-1 ${isCompact ? 'gap-2' : 'gap-5'}`}>
           {/* <button
             onClick={(e) => {
               e.stopPropagation();
@@ -205,7 +263,11 @@ const FoodCardRecommend = ({
               }
               navigate('/home/dailyLog', { state: { food } });
             }}
-            className="flex-1 py-1.5 bg-[#FF8243] border-2 border-[#FF8243] text-white font-bold rounded-xl shadow-sm hover:bg-[#e6753d] hover:border-[#e6753d] transition-colors text-[15px] whitespace-nowrap ml-auto max-w-[150px]"
+            className={`flex-1 bg-[#FF8243] border-2 border-[#FF8243] text-white font-bold rounded-xl shadow-sm hover:bg-[#e6753d] hover:border-[#e6753d] transition-colors whitespace-nowrap ml-auto ${
+              isCompact && !forceLargeSelectButton
+                ? 'py-1 px-2 text-[13px] max-w-[120px]'
+                : 'py-1.5 text-[15px] max-w-[150px]'
+            }`}
           >
             선택하기
           </button>

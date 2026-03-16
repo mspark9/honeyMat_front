@@ -475,6 +475,39 @@ const ReportPage = () => {
     }
   };
 
+  const extractAiReviewResponse = (data) => {
+    if (!data || typeof data !== 'object') return null;
+
+    // 최신 백엔드 응답: { success, review, improvementPoints, recommendedFoods }
+    if (typeof data.review === 'string') {
+      return {
+        review: data.review,
+        improvementPoints: Array.isArray(data.improvementPoints)
+          ? data.improvementPoints
+          : [],
+        recommendedFoods: Array.isArray(data.recommendedFoods)
+          ? data.recommendedFoods
+          : [],
+      };
+    }
+
+    // 구 응답 호환: { content: "<json string>" }
+    const parsedLegacy = parseAiJson(data.content);
+    if (parsedLegacy && typeof parsedLegacy === 'object') {
+      return {
+        review: parsedLegacy.review,
+        improvementPoints: Array.isArray(parsedLegacy.improvementPoints)
+          ? parsedLegacy.improvementPoints
+          : [],
+        recommendedFoods: Array.isArray(parsedLegacy.recommendedFoods)
+          ? parsedLegacy.recommendedFoods
+          : [],
+      };
+    }
+
+    return null;
+  };
+
   useEffect(() => {
     if (!goals || !dailyData.length || isLoading) return;
 
@@ -505,7 +538,7 @@ const ReportPage = () => {
       setIsAiLoading(true);
       try {
         const data = await api.post('/api/ai/report-review', aiPayload);
-        const parsed = parseAiJson(data?.content);
+        const parsed = extractAiReviewResponse(data);
 
         if (!parsed) {
           const fallback = buildFallbackReview();
@@ -599,14 +632,18 @@ const ReportPage = () => {
     setIsFoodListLoading(true);
     try {
       const data = await api.post('/api/ai/recommend-foods', {
-        aiPayload,
-        review: aiReview.review,
-        improvementPoints: aiReview.improvementPoints,
+        currentReview: aiReview.review,
+        weeklyAverageIntake: aiPayload.weeklyAverageIntake,
+        nutritionGoals: aiPayload.nutritionGoals,
       });
-      const parsed = parseAiJson(data?.content);
+      // 최신/구 응답 형식 모두 처리
+      const parsed =
+        Array.isArray(data?.recommendedFoods) || Array.isArray(data)
+          ? data
+          : parseAiJson(data?.content);
       const recommendedFoods = Array.isArray(parsed)
         ? parsed
-        : parsed?.recommendedFoods;
+        : parsed?.recommendedFoods || data?.recommendedFoods;
       const refreshedFoods = normalizeRecommendedFoods(recommendedFoods);
 
       if (refreshedFoods.length) {

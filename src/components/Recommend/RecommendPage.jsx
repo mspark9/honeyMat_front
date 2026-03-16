@@ -20,6 +20,19 @@ const RecommendPage = () => {
   const [sortType, setSortType] = useState('latest');
 
   const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isHalfSplitLayout, setIsHalfSplitLayout] = useState(
+    () => window.innerWidth < 1300,
+  );
+  const [isNutrientSplitViewport, setIsNutrientSplitViewport] = useState(
+    () => window.innerWidth < 1700,
+  );
+  const [isNarrowMobile, setIsNarrowMobile] = useState(
+    () => window.innerWidth < 681,
+  );
+  const [isUltraNarrowMobile, setIsUltraNarrowMobile] = useState(
+    () => window.innerWidth < 531,
+  );
+  const [isMobileChatbotOpen, setIsMobileChatbotOpen] = useState(false);
   const sortRef = useRef(null);
   const listScrollRef = useRef(null);
   const recommendedFoodsRef = useRef(recommendedFoods);
@@ -34,6 +47,59 @@ const RecommendPage = () => {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 1299px)');
+    const handleLayoutChange = (event) => {
+      setIsHalfSplitLayout(event.matches);
+    };
+
+    setIsHalfSplitLayout(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleLayoutChange);
+
+    return () => mediaQuery.removeEventListener('change', handleLayoutChange);
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 1699px)');
+    const handleNutrientLayoutChange = (event) => {
+      setIsNutrientSplitViewport(event.matches);
+    };
+
+    setIsNutrientSplitViewport(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleNutrientLayoutChange);
+
+    return () =>
+      mediaQuery.removeEventListener('change', handleNutrientLayoutChange);
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 680px)');
+    const handleMobileChange = (event) => {
+      setIsNarrowMobile(event.matches);
+      if (!event.matches) {
+        setIsMobileChatbotOpen(false);
+      }
+    };
+
+    setIsNarrowMobile(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleMobileChange);
+
+    return () => mediaQuery.removeEventListener('change', handleMobileChange);
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 530px)');
+    const handleUltraNarrowChange = (event) => {
+      setIsUltraNarrowMobile(event.matches);
+    };
+
+    setIsUltraNarrowMobile(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleUltraNarrowChange);
+
+    return () =>
+      mediaQuery.removeEventListener('change', handleUltraNarrowChange);
   }, []);
 
   // 즐겨찾기 로컬스토리지 연동
@@ -116,7 +182,9 @@ const RecommendPage = () => {
   const fetchRandomFoods = async () => {
     setIsDataLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/recommend/random`);
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/recommend/random`,
+      );
       const data = await res.json();
       const normalized = normalizeData(data);
 
@@ -199,11 +267,15 @@ const RecommendPage = () => {
   ];
 
   // AI 챗봇 전송
+  // AI 챗봇 전송 및 카드 동기화 로직
   const sendMessage = async () => {
+    // 1. 입력값 검증 및 로딩 상태 확인
     if (!inputMessage.trim() || isLoading) return;
 
     const token = localStorage.getItem('accessToken');
     const userMsg = { role: 'user', content: inputMessage };
+
+    // 유저 메시지 즉시 반영
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
 
@@ -212,61 +284,64 @@ const RecommendPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/recommend/save`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/recommend/save`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            messages: updatedMessages,
+            inputMessage: currentInput,
+          }),
         },
-        body: JSON.stringify({
-          messages: updatedMessages,
-          inputMessage: currentInput,
-        }),
-      });
+      );
 
       const data = await response.json();
 
       if (data.success) {
+        // 2. AI 텍스트 응답 추가
         setMessages((prev) => [
           ...prev,
           { role: 'assistant', content: data.chatContent || data.reply },
         ]);
 
-        if (data.foods && data.foods.length > 0) {
-          const current = recommendedFoodsRef.current;
-          const incomingCount = data.foods.length;
-          const beforeCount = current.length;
-          const merged = mergeRecommendedFoods(data.foods, current);
-          const afterCount = merged.length;
-          const addedCount = Math.max(afterCount - beforeCount, 0);
+        // 3. 추천된 음식 카드 리스트 업데이트
+        const incomingFoods = Array.isArray(data.foods) ? data.foods : [];
+        if (incomingFoods.length > 0) {
+          // 프론트엔드 형식에 맞게 데이터 정제
+          const normalizedFoods = normalizeData(incomingFoods);
 
-          if (import.meta.env.DEV) {
-            console.info('[Recommend Debug] 챗봇 추천 수신', {
-              incomingCount,
-              beforeCount,
-              afterCount,
-              addedCount,
-              droppedDuringMerge: Math.max(incomingCount - addedCount, 0),
-              filtersBeforeReset: {
-                searchTerm,
-                finalSearchTerm,
-                selectedTags,
-                isFavoriteView,
-              },
-            });
-          }
+          setRecommendedFoods((prev) =>
+            mergeRecommendedFoods(normalizedFoods, prev),
+          );
 
-          setRecommendedFoods(merged);
-          // 챗봇 추천 직후에는 필터로 인해 카드가 숨겨지지 않도록 표시 조건 초기화
+          // 4. UI 편의성 조치: 필터 초기화 및 스크롤 이동
+          // 검색어나 태그 필터 때문에 새 카드가 안 보일 수 있으므로 초기화합니다.
           setSearchTerm('');
           setFinalSearchTerm('');
           setSelectedTags([]);
           setIsFavoriteView(false);
-          requestAnimationFrame(() => {
-            listScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-          });
+
+          // 리스트 영역 로딩 애니메이션 트리거
           triggerLoading();
+
+          // 약간의 지연 후 리스트 최상단으로 부드럽게 스크롤
+          setTimeout(() => {
+            listScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 150);
         }
+      } else {
+        // 백엔드 success가 false인 경우 처리
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: data.message || '추천 메뉴를 가져오지 못했습니다.',
+          },
+        ]);
       }
     } catch (error) {
       console.error('Chat API Error:', error);
@@ -412,8 +487,78 @@ const RecommendPage = () => {
       }
     });
 
+  const renderChatbotPanel = (showCloseButton = false) => (
+    <>
+      <div className="p-4 border-b border-gray-100 bg-white shrink-0 flex items-center justify-between">
+        <h2 className="font-bold flex items-center gap-2">
+          <TbMessageChatbot size={24} color="#FF8243" />
+          <span className="text-lg">AI 식단 분석가</span>
+        </h2>
+        {showCloseButton && (
+          <button
+            onClick={() => setIsMobileChatbotOpen(false)}
+            className="px-3 py-1.5 rounded-md text-[12px] font-semibold text-gray-600 hover:bg-gray-100"
+          >
+            닫기
+          </button>
+        )}
+      </div>
+      <div
+        ref={scrollRef}
+        className="flex-1 p-4 overflow-y-auto bg-[#F9FBFA] space-y-4 custom-scrollbar"
+      >
+        {messages.map((msg, index) => (
+          <div
+            key={index}
+            className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+          >
+            <div
+              className={`p-3 px-4 rounded-2xl shadow-sm max-w-[85%] whitespace-pre-wrap ${
+                isUltraNarrowMobile ? 'text-[12px]' : 'text-sm'
+              } ${
+                msg.role === 'user'
+                  ? 'bg-[#FF8243] text-white rounded-tr-none'
+                  : 'bg-white text-[#1E2923] border border-gray-100 rounded-tl-none'
+              }`}
+            >
+              {msg.content}
+            </div>
+          </div>
+        ))}
+        {isLoading && (
+          <div
+            className={`p-3 px-4 rounded-2xl shadow-sm text-gray-400 bg-white border border-gray-100 rounded-tl-none animate-pulse max-w-[85%] ${
+              isUltraNarrowMobile ? 'text-[12px]' : 'text-sm'
+            }`}
+          >
+            AI가 최적의 식단을 분석 중입니다 ...
+          </div>
+        )}
+      </div>
+      <div className="p-3 bg-white border-t border-gray-100 shrink-0">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+            placeholder="음식 이름이나 영양 고민을 입력하세요 ..."
+            className="flex-1 p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-[#FF8243] text-sm"
+          />
+          <button
+            onClick={sendMessage}
+            disabled={isLoading}
+            className="bg-[#FF8243] text-white px-5 rounded-xl text-sm font-medium disabled:bg-gray-300 hover:bg-[#e6753d]"
+          >
+            전송
+          </button>
+        </div>
+      </div>
+    </>
+  );
+
   return (
-    <div className="flex w-full p-4 gap-4 text-[#1E2923] bg-gray-50 h-[92vh] max-h-[1000px] overflow-hidden">
+    <div className="relative flex w-full p-4 gap-4 text-[#1E2923] bg-gray-50 h-[92vh] max-h-[1000px] overflow-hidden">
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
@@ -421,64 +566,35 @@ const RecommendPage = () => {
       `}</style>
 
       {/* 좌측: AI 챗봇 영역 */}
-      <div className="flex-1 bg-white rounded-2xl border border-gray-100 flex flex-col overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-gray-100 bg-white shrink-0">
-          <h2 className="font-bold flex items-center gap-2">
-            <TbMessageChatbot size={24} color="#FF8243" />
-            <span className="text-lg">AI 식단 분석가</span>
-          </h2>
-        </div>
-        <div
-          ref={scrollRef}
-          className="flex-1 p-4 overflow-y-auto bg-[#F9FBFA] space-y-4 custom-scrollbar"
-        >
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
-            >
-              <div
-                className={`p-3 px-4 rounded-2xl shadow-sm max-w-[85%] text-sm whitespace-pre-wrap ${
-                  msg.role === 'user'
-                    ? 'bg-[#FF8243] text-white rounded-tr-none'
-                    : 'bg-white text-[#1E2923] border border-gray-100 rounded-tl-none'
-                }`}
-              >
-                {msg.content}
-              </div>
-            </div>
-          ))}
-          {isLoading && (
-            <div className="p-3 px-4 rounded-2xl shadow-sm text-sm text-gray-400 bg-white border border-gray-100 rounded-tl-none animate-pulse max-w-[85%]">
-              AI가 최적의 식단을 분석 중입니다 ...
-            </div>
-          )}
-        </div>
-        <div className="p-3 bg-white border-t border-gray-100 shrink-0">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-              placeholder="음식 이름이나 영양 고민을 입력하세요 ..."
-              className="flex-1 p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-[#FF8243] text-sm"
-            />
-            <button
-              onClick={sendMessage}
-              disabled={isLoading}
-              className="bg-[#FF8243] text-white px-5 rounded-xl text-sm font-medium disabled:bg-gray-300 hover:bg-[#e6753d]"
-            >
-              전송
-            </button>
-          </div>
-        </div>
+      <div
+        className={`min-w-0 bg-white rounded-2xl border border-gray-100 flex flex-col overflow-hidden shadow-sm ${
+          isNarrowMobile
+            ? 'hidden'
+            : 'max-[1299px]:w-1/2 min-[1300px]:flex-1'
+        }`}
+      >
+        {renderChatbotPanel()}
       </div>
 
       {/* 우측: 리스트 영역 */}
-      <div className="flex-2 flex flex-col min-w-0 bg-[#F9FBFA] h-full overflow-hidden relative pt-1 pb-1">
+      <div
+        className={`flex flex-col min-w-0 bg-[#F9FBFA] h-full overflow-hidden relative pb-1 ${
+          isNarrowMobile
+            ? 'w-full pt-1'
+            : 'max-[1299px]:w-1/2 min-[1300px]:flex-2 pt-1'
+        }`}
+      >
         <div className="shrink-0 space-y-2 mb-3 px-2">
           <div className="flex gap-2 items-center">
+            {isNarrowMobile && !isMobileChatbotOpen && (
+              <button
+                onClick={() => setIsMobileChatbotOpen(true)}
+                className="shrink-0 h-10 flex items-center gap-1.5 px-2.5 rounded-lg bg-[#FF8243] border border-[#FF8243] shadow-sm text-[12px] font-semibold text-white hover:bg-[#e6753d] hover:border-[#e6753d]"
+              >
+                <TbMessageChatbot size={15} color="#ffffff" />
+                챗봇
+              </button>
+            )}
             <div className="flex-1 relative">
               <input
                 type="text"
@@ -486,10 +602,10 @@ const RecommendPage = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-full p-2.5 pl-4 bg-white rounded-xl shadow-sm border border-gray-100 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8243]"
+                className="w-full h-10 pl-4 pr-10 bg-white rounded-xl shadow-sm border border-gray-100 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8243]"
               />
               <FaSearch
-                className="absolute right-4 top-3.5 text-gray-400 cursor-pointer"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
                 onClick={handleSearch}
               />
             </div>
@@ -498,7 +614,7 @@ const RecommendPage = () => {
                 triggerLoading();
                 setIsFavoriteView(!isFavoriteView);
               }}
-              className="p-2.5 bg-white border border-gray-200 rounded-xl shadow-sm"
+              className="shrink-0 w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-xl shadow-sm"
             >
               <FaStar
                 size={18}
@@ -519,7 +635,9 @@ const RecommendPage = () => {
                 <button
                   key={label}
                   onClick={() => handleFilter(label)}
-                  className={`whitespace-nowrap px-3 py-1.5 rounded-full border text-[12px] font-medium transition-all ${
+                  className={`whitespace-nowrap px-3 py-1.5 rounded-full border font-medium transition-all ${
+                    isUltraNarrowMobile ? 'text-[11px]' : 'text-[12px]'
+                  } ${
                     selectedTags.includes(label)
                       ? 'bg-[#FF8243] text-white border-[#FF8243]'
                       : 'bg-white text-gray-600 border-gray-200'
@@ -533,11 +651,42 @@ const RecommendPage = () => {
             <div className="relative shrink-0" ref={sortRef}>
               <button
                 onClick={() => setIsSortOpen(!isSortOpen)}
-                className="flex items-center justify-between gap-2 pl-4 pr-3 py-2.5 bg-white border border-gray-100 rounded-xl text-[14px] font-semibold text-gray-700 shadow-sm hover:border-[#FF8243] hover:shadow-md transition-all min-w-[190px]"
+                className={`flex items-center justify-between gap-2 bg-white border border-gray-100 rounded-xl font-semibold text-gray-700 shadow-sm hover:border-[#FF8243] hover:shadow-md transition-all ${
+                  isUltraNarrowMobile
+                    ? 'pl-2 pr-1.5 py-2 text-[11px] min-w-[98px]'
+                    : isNarrowMobile
+                    ? 'pl-3 pr-2.5 py-2 text-[13px] min-w-[132px]'
+                    : isHalfSplitLayout
+                    ? 'pl-2.5 pr-2 py-2 text-[12px] min-w-[114px]'
+                    : 'pl-4 pr-3 py-2.5 text-[14px] min-w-[190px]'
+                }`}
               >
-                <div className="flex items-center gap-2">
-                  <LuArrowDownUp size={17} className="text-[#FF8243] mr-1" />
-                  <span className="text-[13px]">
+                <div
+                  className={`flex items-center ${isUltraNarrowMobile ? 'gap-0' : 'gap-2'}`}
+                >
+                  <LuArrowDownUp
+                    size={
+                      isUltraNarrowMobile
+                        ? 13
+                        : isNarrowMobile
+                          ? 16
+                          : isHalfSplitLayout
+                            ? 14
+                            : 17
+                    }
+                    className={`text-[#FF8243] ${isUltraNarrowMobile ? 'mr-0' : 'mr-1'}`}
+                  />
+                  <span
+                    className={
+                      isUltraNarrowMobile
+                        ? 'text-[11px]'
+                        : isNarrowMobile
+                        ? 'text-[13px]'
+                        : isHalfSplitLayout
+                          ? 'text-[12px]'
+                          : 'text-[13px]'
+                    }
+                  >
                     {sortType === 'latest'
                       ? '최신순'
                       : sortType === 'name'
@@ -548,7 +697,17 @@ const RecommendPage = () => {
               </button>
 
               {isSortOpen && (
-                <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
+                <div
+                  className={`absolute right-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden ${
+                    isUltraNarrowMobile
+                      ? 'w-24'
+                      : isNarrowMobile
+                        ? 'w-32'
+                        : isHalfSplitLayout
+                          ? 'w-28'
+                          : 'w-40'
+                  }`}
+                >
                   {[
                     { label: '최신순', value: 'latest' },
                     { label: '이름순 (ㄱ-ㅎ)', value: 'name' },
@@ -561,14 +720,34 @@ const RecommendPage = () => {
                         setIsSortOpen(false);
                         triggerLoading();
                       }}
-                      className={`w-full flex items-center justify-between px-4 py-2.5 text-[13px] transition-colors hover:bg-gray-50 ${
+                      className={`w-full flex items-center justify-between transition-colors hover:bg-gray-50 ${
+                        isUltraNarrowMobile
+                          ? 'px-2.5 py-2.5 text-[11px]'
+                          : isNarrowMobile
+                          ? 'px-3 py-2.5 text-[13px]'
+                          : isHalfSplitLayout
+                          ? 'px-3 py-2 text-[12px]'
+                          : 'px-4 py-2.5 text-[13px]'
+                      } ${
                         sortType === opt.value
                           ? 'text-[#FF8243] font-bold bg-orange-100/50'
                           : 'text-gray-600'
                       }`}
                     >
                       {opt.label}
-                      {sortType === opt.value && <LuCheck size={14} />}
+                      {sortType === opt.value && (
+                        <LuCheck
+                          size={
+                            isUltraNarrowMobile
+                              ? 11
+                              : isNarrowMobile
+                                ? 14
+                                : isHalfSplitLayout
+                                  ? 12
+                                  : 14
+                          }
+                        />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -588,11 +767,17 @@ const RecommendPage = () => {
           )}
 
           {displayFoods.length > 0 ? (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <div className="grid grid-cols-1 min-[1300px]:grid-cols-2 gap-x-4 gap-y-1">
               {displayFoods.map((food, index) => (
                 <FoodCardRecommend
                   key={`${food.id}-${food.name}-${index}`}
                   food={food}
+                  isHalfSplitLayout={isHalfSplitLayout}
+                  isNutrientSplitViewport={isNutrientSplitViewport}
+                  forceSingleRowNutrients={
+                    isNarrowMobile && !isUltraNarrowMobile
+                  }
+                  forceLargeSelectButton={isUltraNarrowMobile}
                   isFavorite={favorites.includes(food.id)}
                   onToggleFavorite={() => toggleFavorite(food.id)}
                   onDelete={(id, name) => handleDelete(id, name)}
@@ -663,6 +848,19 @@ const RecommendPage = () => {
           </div>
         )}
       </div>
+
+      {isNarrowMobile && isMobileChatbotOpen && (
+        <div className="fixed inset-0 z-50 bg-black/35 flex" role="dialog" aria-modal="true">
+          <div className="w-[92%] max-w-[420px] h-full bg-white shadow-2xl border-r border-gray-200 flex flex-col">
+            {renderChatbotPanel(true)}
+          </div>
+          <button
+            aria-label="챗봇 닫기 배경"
+            onClick={() => setIsMobileChatbotOpen(false)}
+            className="flex-1"
+          />
+        </div>
+      )}
     </div>
   );
 };
