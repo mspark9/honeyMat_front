@@ -172,8 +172,8 @@ export default function LoginPage() {
                             sx={{ mb: 1, ...textFieldFocusStyle }}
                         />
 
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                            <FormControlLabel
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 3 }}>
+                            {/* <FormControlLabel
                                 control={
                                     <Checkbox
                                         checked={rememberMe}
@@ -186,7 +186,7 @@ export default function LoginPage() {
                                     />
                                 }
                                 label={<Typography variant="body2" color="text.secondary">로그인 유지</Typography>}
-                            />
+                            /> */}
                             <Link
                                 component={RouterLink}
                                 to="/forgot-password"
