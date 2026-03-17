@@ -74,7 +74,7 @@ async function request(path, options = {}, isRetry = false) {
     });
 
     // 401 에러 시 토큰 갱신 후 재시도 (refresh 요청 자체는 제외)
-    if (res.status === 401 && !isRetry && !path.includes('/auth/refresh')) {
+    if (res.status === 401 && !isRetry && !path.includes('/auth/refresh') && !path.includes('/auth/login')) {
         try {
             await refreshToken();
             // 새 토큰으로 재시도
@@ -141,6 +141,34 @@ export const authApi = {
     // 프로필 이미지 삭제 (DELETE /api/auth/profile/image)
     deleteProfileImage: () =>
         request('/api/auth/profile/image', { method: 'DELETE' }),
+
+    // 비밀번호 찾기 - 인증 코드 이메일 발송
+    forgotPasswordSendCode: (email) =>
+        request('/api/auth/forgot-password/send-code', {
+            method: 'POST',
+            body: JSON.stringify({ email }),
+        }),
+
+    // 비밀번호 찾기 - 인증 코드 검증 (resetToken 반환)
+    forgotPasswordVerifyCode: (email, code) =>
+        request('/api/auth/forgot-password/verify-code', {
+            method: 'POST',
+            body: JSON.stringify({ email, code }),
+        }),
+
+    // 비밀번호 찾기 - 새 비밀번호 설정
+    forgotPasswordResetPassword: (resetToken, newPassword) =>
+        request('/api/auth/forgot-password/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({ resetToken, newPassword }),
+        }),
+
+    // 비밀번호 찾기 - 인증 코드 재발송
+    forgotPasswordResendCode: (email) =>
+        request('/api/auth/forgot-password/resend-code', {
+            method: 'POST',
+            body: JSON.stringify({ email }),
+        }),
 };
 
 // 사용자 관련 API
