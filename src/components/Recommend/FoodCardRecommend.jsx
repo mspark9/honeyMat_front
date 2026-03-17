@@ -13,6 +13,9 @@ const FoodCardRecommend = ({
   forceLargeSelectButton = false,
   isAtMost450 = false,
   isFavorite,
+  onTagsChange,
+  onTagLoadingChange,
+  forceTagSkeleton = false,
   onToggleFavorite,
   onDelete,
   onToggleCheck,
@@ -31,12 +34,17 @@ const FoodCardRecommend = ({
     const fetchAiTags = async () => {
       // 이미 데이터에 태그가 있거나 로딩 중이면 중단
       if ((food.tags && food.tags.length > 0) || tags.length > 0) {
-        if (food.tags && tags.length === 0) setTags(food.tags);
+        if (food.tags && tags.length === 0) {
+          setTags(food.tags);
+          onTagsChange?.(food.id, food.tags);
+        }
+        onTagLoadingChange?.(food.id, false);
         setIsLoading(false);
         return;
       }
 
       setIsLoading(true);
+      onTagLoadingChange?.(food.id, true);
       try {
         const data = await api.post('/api/ai/food-tags', {
           foodname: food.name,
@@ -49,15 +57,16 @@ const FoodCardRecommend = ({
 
         const aiTags = Array.isArray(data.tags) ? data.tags : [];
         setTags(aiTags);
-        food.tags = aiTags;
+        onTagsChange?.(food.id, aiTags);
       } catch (error) {
         console.error('AI 태그 생성 실패:', error);
       } finally {
         setIsLoading(false);
+        onTagLoadingChange?.(food.id, false);
       }
     };
     fetchAiTags();
-  }, [food]);
+  }, [food, tags.length, onTagsChange, onTagLoadingChange]);
 
   useEffect(() => {
     if (!isLoading && titleRef.current && containerRef.current) {
@@ -215,7 +224,7 @@ const FoodCardRecommend = ({
             : 'flex-wrap overflow-visible'
         }`}
       >
-        {isLoading && tags.length === 0 ? (
+        {forceTagSkeleton || (isLoading && tags.length === 0) ? (
           <>
             <div className="w-16 h-[26px] bg-gray-100 rounded-md animate-pulse shrink-0" />
             <div className="w-22 h-[26px] bg-gray-100 rounded-md animate-pulse shrink-0" />
