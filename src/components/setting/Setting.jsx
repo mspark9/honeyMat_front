@@ -42,6 +42,7 @@ import {
   Restore,
   CameraAlt,
   Delete,
+  AccessTime,
 } from '@mui/icons-material';
 
 // ─── 목표 / 식이 제한 옵션 (RegisterPage와 동일) ─────────────────────────────
@@ -575,6 +576,7 @@ export default function Setting() {
                 fontWeight={600}
                 color="text.primary"
                 mb={0.5}
+                sx={{ textAlign: { xs: 'center', sm: 'left' } }}
               >
                 프로필 사진
               </Typography>
@@ -586,7 +588,7 @@ export default function Setting() {
               >
                 JPG, PNG 형식 (최대 2MB)
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
                 <Button
                   size="small"
                   variant="outlined"
@@ -909,7 +911,7 @@ export default function Setting() {
                                     <FormControl
                                       key={key}
                                       size="small"
-                                      sx={{ width: 150 }}
+                                      sx={{ width: 164, ...textFieldFocusStyle }}
                                     >
                                       <InputLabel>{fieldLabel}</InputLabel>
                                       <Select
@@ -958,9 +960,34 @@ export default function Setting() {
                                       }
                                       size="small"
                                       InputLabelProps={{ shrink: true }}
-                                      inputProps={{ step: 300 }}
+                                      inputProps={{
+                                        step: 300,
+                                        onClick: (e) => e.target.showPicker?.(),
+                                      }}
+                                      InputProps={{
+                                        startAdornment: (
+                                          <InputAdornment position="start">
+                                            <AccessTime fontSize="small" sx={{ color: 'text.secondary' }} />
+                                          </InputAdornment>
+                                        ),
+                                      }}
                                       sx={{
-                                        width: 150,
+                                        width: 164,
+                                        '& input[type="time"]': {
+                                          WebkitAppearance: 'none',
+                                        },
+                                        '& input[type="time"]::-webkit-calendar-picker-indicator': {
+                                          display: 'none',
+                                          WebkitAppearance: 'none',
+                                        },
+                                        '& input[type="time"]::-webkit-inner-spin-button': {
+                                          display: 'none',
+                                          WebkitAppearance: 'none',
+                                        },
+                                        '& input[type="time"]::-webkit-clear-button': {
+                                          display: 'none',
+                                          WebkitAppearance: 'none',
+                                        },
                                         ...textFieldFocusStyle,
                                       }}
                                     />

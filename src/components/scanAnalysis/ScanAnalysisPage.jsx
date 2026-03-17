@@ -39,6 +39,7 @@ const App = () => {
   const [mealType, setMealType] = useState('breakfast');
   const [isSaving, setIsSaving] = useState(false);
   const [aiScanId, setAiScanId] = useState(null); // ai_scans 저장 후 id (기록하기 시 사용)
+  const [savedEntries, setSavedEntries] = useState([]); // 기록된 항목 목록
   const fileInputRef = useRef(null);
   const imgContainerRef = useRef(null);
   const imgRef = useRef(null);
@@ -319,6 +320,7 @@ const App = () => {
     setAiScanId(null);
     setError(null);
     setStep('upload');
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -334,7 +336,7 @@ const App = () => {
               <PieChart size={28} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-[#1E2923] tracking-tight">
+              <h1 className="text-2xl xxs:text-xl font-bold text-[#1E2923] tracking-tight">
                 AI 식단 분석
               </h1>
               <p className="text-sm text-[#64748b] mt-0.5 font-medium">
@@ -435,16 +437,16 @@ const App = () => {
 
         {/* Step 3: Result */}
         {step === 'result' && analysis && (
-          <div className="flex items-stretch gap-5 p-1">
+          <div className="flex flex-col lg:flex-row items-stretch gap-5 p-1">
             {/* 사진 박스 - 원본 비율 유지, 가로로 넓게 */}
             <div
               ref={imgContainerRef}
-              className="flex-[2.5] min-w-0 rounded-3xl ring-4 ring-orange-50 relative bg-slate-100 flex items-center justify-center overflow-hidden"
+              className="w-full lg:flex-[2.5] min-w-0 rounded-3xl ring-4 ring-orange-50 relative bg-slate-100 flex items-start justify-start overflow-hidden self-start"
             >
               <img
                 ref={imgRef}
                 src={selectedImage}
-                className="object-contain rounded-3xl w-full h-full"
+                className="object-contain object-top rounded-3xl w-full h-full"
                 alt="Food"
                 onLoad={measureImage}
               />
@@ -499,7 +501,7 @@ const App = () => {
               )}
             </div>
             {/* 결과 박스 */}
-            <div className="flex-[1.5] min-w-0 space-y-5 animate-in fade-in slide-in-from-bottom-6 duration-700">
+            <div className="w-full lg:flex-[1.5] min-w-0 space-y-5 animate-in fade-in slide-in-from-bottom-6 duration-700">
               <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-100 relative">
                 <div className="absolute -top-3 -right-3">
                   <div className="w-16 h-16 bg-[#FF8243] rounded-full flex flex-col items-center justify-center text-white shadow-lg border-4 border-white">
@@ -741,7 +743,7 @@ const App = () => {
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={resetScanner}
-                  className="bg-white border-2 border-[#1E2923] text-[#1E2923] py-5 rounded-3xl font-bold flex items-center justify-center gap-2 hover:bg-slate-50 transition-all active:scale-95"
+                  className="bg-white border-2 border-[#FF8243] text-[#FF8243] py-3 rounded-3xl font-bold flex items-center justify-center gap-2 hover:bg-orange-50 transition-all active:scale-95"
                 >
                   <RefreshCw size={20} /> 다시 찍기
                 </button>
@@ -786,14 +788,23 @@ const App = () => {
                         imageFile: aiScanId ? null : selectedFile,
                         foods,
                       });
-                      navigate('/home/dailyLog');
+                      setSavedEntries((prev) => [
+                        ...prev,
+                        {
+                          image: selectedImage,
+                          mealType,
+                          foods,
+                          totals,
+                        },
+                      ]);
+                      resetScanner();
                     } catch (err) {
                       setError(err.message || '저장 중 오류가 발생했습니다.');
                     } finally {
                       setIsSaving(false);
                     }
                   }}
-                  className="bg-[#1E2923] text-white py-5 rounded-3xl font-bold flex items-center justify-center gap-2 hover:bg-[#2a3a31] transition-all shadow-lg active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="bg-[#FF8243] text-white py-3 rounded-3xl font-bold flex items-center justify-center gap-2 hover:bg-[#e8722f] transition-all shadow-lg active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {isSaving ? (
                     <>
@@ -811,6 +822,58 @@ const App = () => {
           </div>
         )}
       </main>
+
+      {/* 기록된 항목 목록 */}
+      {savedEntries.length > 0 && (
+        <section className="w-full max-w-7xl px-3 pb-6">
+          <h2 className="text-base font-bold text-[#1E2923] mb-3">
+            기록된 식단 ({savedEntries.length}건)
+          </h2>
+          <div className="space-y-3">
+            {savedEntries.map((entry, idx) => {
+              const MEAL_LABELS = { breakfast: '아침', lunch: '점심', dinner: '저녁', snack: '간식' };
+              return (
+                <div
+                  key={idx}
+                  className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex gap-4 items-start"
+                >
+                  {entry.image && (
+                    <img
+                      src={entry.image}
+                      alt="식단 사진"
+                      className="w-20 h-20 object-cover rounded-xl flex-shrink-0 border border-slate-100"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-bold bg-[#FF8243]/10 text-[#FF8243] px-2 py-0.5 rounded-full">
+                        {MEAL_LABELS[entry.mealType] ?? entry.mealType}
+                      </span>
+                      <span className="text-sm font-bold text-[#FF8243]">
+                        {entry.totals.calories} kcal
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#1E2923] font-medium truncate">
+                      {entry.foods.map((f) => f.name).join(', ')}
+                    </p>
+                    <div className="flex gap-3 mt-1 text-xs text-[#1E2923]/60">
+                      <span>탄 {Math.round(entry.totals.carbs * 10) / 10}g</span>
+                      <span>단 {Math.round(entry.totals.protein * 10) / 10}g</span>
+                      <span>지 {Math.round(entry.totals.fat * 10) / 10}g</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => navigate('/home/dailyLog')}
+            className="mt-4 w-full py-3 rounded-2xl bg-[#1E2923] text-white font-bold text-sm hover:bg-[#2a3a31] transition-colors"
+          >
+            일일 식단 기록 보러가기
+          </button>
+        </section>
+      )}
 
       <footer className="py-6 text-center text-[#1E2923]/40 text-sm font-medium tracking-tight">
         Powered by Advanced AI Recognition

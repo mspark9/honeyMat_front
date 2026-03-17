@@ -240,34 +240,67 @@ function MealCard({ meal, data, isToday, dateStr, nutrientConfig }) {
                             {data.foods.map((f) => f.name).join(', ')}
                         </Typography>
                     )}
-                </Box>
-                {totalCal > 0 ? (
-                    <Chip
-                        icon={
-                            <LocalFireDepartment
+                    {/* xs~lg: 음식명 아래 */}
+                    <Box sx={{ display: { xs: 'flex', lg: 'none' }, mt: 0.5 }}>
+                        {totalCal > 0 ? (
+                            <Chip
+                                icon={
+                                    <LocalFireDepartment
+                                        sx={{
+                                            fontSize: '14px !important',
+                                            color: `${darkColor} !important`,
+                                        }}
+                                    />
+                                }
+                                label={`${totalCal} kcal`}
+                                size="small"
                                 sx={{
-                                    fontSize: '14px !important',
-                                    color: `${darkColor} !important`,
+                                    bgcolor: bg,
+                                    color: darkColor,
+                                    fontWeight: 700,
+                                    fontSize: '0.75rem',
                                 }}
                             />
-                        }
-                        label={`${totalCal} kcal`}
-                        size="small"
-                        sx={{
-                            bgcolor: bg,
-                            color: darkColor,
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                        }}
-                    />
-                ) : (
-                    <Chip
-                        label="미기록"
-                        size="small"
-                        variant="outlined"
-                        sx={{ color: 'text.disabled', borderColor: '#e2e8f0' }}
-                    />
-                )}
+                        ) : (
+                            <Chip
+                                label="미기록"
+                                size="small"
+                                variant="outlined"
+                                sx={{ color: 'text.disabled', borderColor: '#e2e8f0' }}
+                            />
+                        )}
+                    </Box>
+                </Box>
+                {/* lg+: 오른쪽 */}
+                <Box sx={{ display: { xs: 'none', lg: 'flex' }, alignItems: 'center' }}>
+                    {totalCal > 0 ? (
+                        <Chip
+                            icon={
+                                <LocalFireDepartment
+                                    sx={{
+                                        fontSize: '14px !important',
+                                        color: `${darkColor} !important`,
+                                    }}
+                                />
+                            }
+                            label={`${totalCal} kcal`}
+                            size="small"
+                            sx={{
+                                bgcolor: bg,
+                                color: darkColor,
+                                fontWeight: 700,
+                                fontSize: '0.75rem',
+                            }}
+                        />
+                    ) : (
+                        <Chip
+                            label="미기록"
+                            size="small"
+                            variant="outlined"
+                            sx={{ color: 'text.disabled', borderColor: '#e2e8f0' }}
+                        />
+                    )}
+                </Box>
                 <IconButton size="small" sx={{ ml: 0.5 }}>
                     {open ? (
                         <ExpandLess fontSize="small" />
@@ -281,31 +314,6 @@ function MealCard({ meal, data, isToday, dateStr, nutrientConfig }) {
             <Collapse in={open}>
                 <Divider />
                 <Box sx={{ p: 2.5 }}>
-                    {/* AI 분석 사진 (ai_scan_id가 있는 경우 음식목록 위에 한 번만 표시) */}
-                    {aiScanImage && (
-                        <Box sx={{ mb: 2 }}>
-                            <Typography
-                                variant="caption"
-                                fontWeight={600}
-                                color="text.secondary"
-                                sx={{ display: 'block', mb: 0.5 }}
-                            >
-                                AI 분석 사진
-                            </Typography>
-                            <Box
-                                component="img"
-                                src={aiScanImage}
-                                alt="AI 분석 사진"
-                                sx={{
-                                    width: 80,
-                                    height: 80,
-                                    objectFit: 'cover',
-                                    borderRadius: 1.5,
-                                    border: `2px solid ${color}`,
-                                }}
-                            />
-                        </Box>
-                    )}
                     {/* 음식 리스트 */}
                     <Typography
                         variant="body2"
@@ -331,14 +339,15 @@ function MealCard({ meal, data, isToday, dateStr, nutrientConfig }) {
                                     <Box
                                         sx={{
                                             display: 'flex',
+                                            flexDirection: { xs: 'column', xxs: 'row' },
                                             justifyContent: 'space-between',
-                                            alignItems: 'center',
+                                            alignItems: { xs: 'flex-start', xxs: 'center' },
                                         }}
                                     >
                                         <Typography variant="body2" fontWeight={500}>
                                             {food.name}
                                         </Typography>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: { xs: 0.5, xxs: 0 } }}>
                                             {food.servingSize > 0 && (
                                                 <Typography
                                                     variant="body2"
@@ -357,12 +366,14 @@ function MealCard({ meal, data, isToday, dateStr, nutrientConfig }) {
                                             </Typography>
                                         </Box>
                                     </Box>
-                                    {/* 사진: 공통 이미지로 표시된 경우 제외, 수동 추가 음식만 개별 표시 */}
-                                    {food.image && !food.aiScanId && !hasSharedImage && (
+                                    {/* 사진: 수동 추가 음식 개별 이미지 or AI 스캔 음식 자체 이미지 (공유 이미지면 첫 번째 row에만) */}
+                                    {((food.image && !food.aiScanId) ||
+                                        (food.aiScanId && food.image && !hasSharedImage) ||
+                                        (i === 0 && hasSharedImage && aiScanImage)) && (
                                         <Box sx={{ mt: 1 }}>
                                             <Box
                                                 component="img"
-                                                src={food.image}
+                                                src={(i === 0 && hasSharedImage && aiScanImage) ? aiScanImage : food.image}
                                                 alt={`${food.name} 사진`}
                                                 sx={{
                                                     width: 80,
@@ -759,7 +770,18 @@ function AddRecordCard({ onRefresh, userId, selectedDate, initialFoodName = '', 
                 <Box sx={{ p: 2.5 }}>
                     <Stack spacing={2.5}>
                         {/* 끼니 선택 */}
-                        <FormControl size="small" fullWidth>
+                        <FormControl
+                            size="small"
+                            fullWidth
+                            sx={{
+                                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: '#FF8243',
+                                },
+                                '& .MuiInputLabel-root.Mui-focused': {
+                                    color: '#FF8243',
+                                },
+                            }}
+                        >
                             <InputLabel>끼니 선택</InputLabel>
                             <Select
                                 value={selectedMeal}
@@ -811,7 +833,7 @@ function AddRecordCard({ onRefresh, userId, selectedDate, initialFoodName = '', 
                                             border: '1px solid #e8ecf0',
                                         }}
                                     >
-                                        {/* 상단: 순번, 음식이름, 칼로리, 삭제버튼 */}
+                                        {/* 1행: 순번, 음식이름, 삭제버튼 */}
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                             {/* 순번 */}
                                             <Typography
@@ -842,6 +864,24 @@ function AddRecordCard({ onRefresh, userId, selectedDate, initialFoodName = '', 
                                                 }
                                             />
 
+                                            {/* 삭제 버튼 */}
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleRemoveRow(index)}
+                                                disabled={foods.length === 1}
+                                                sx={{
+                                                    color: '#cbd5e1',
+                                                    flexShrink: 0,
+                                                    '&:hover': { color: '#EF5350', bgcolor: '#fef2f2' },
+                                                    '&.Mui-disabled': { opacity: 0.3 },
+                                                }}
+                                            >
+                                                <DeleteOutline fontSize="small" />
+                                            </IconButton>
+                                        </Box>
+
+                                        {/* 2행: g, kcal */}
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, ml: 3.5 }}>
                                             {/* 1회 제공량 (g) */}
                                             <TextField
                                                 size="small"
@@ -852,14 +892,14 @@ function AddRecordCard({ onRefresh, userId, selectedDate, initialFoodName = '', 
                                                     handleFoodChange(index, 'servingSize', e.target.value)
                                                 }
                                                 sx={{
-                                                    width: 72,
+                                                    flex: 1,
                                                     '& .MuiOutlinedInput-root': {
                                                         borderRadius: 1.5,
                                                         bgcolor: '#fff',
                                                         fontSize: '0.875rem',
-                                                    },
-                                                    '& .MuiOutlinedInput-notchedOutline': {
-                                                        borderColor: '#e8ecf0',
+                                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                                            borderColor: '#FF8243',
+                                                        },
                                                     },
                                                     '& input': { textAlign: 'right' },
                                                 }}
@@ -875,33 +915,18 @@ function AddRecordCard({ onRefresh, userId, selectedDate, initialFoodName = '', 
                                                     handleFoodChange(index, 'calories', e.target.value)
                                                 }
                                                 sx={{
-                                                    width: 80,
+                                                    flex: 1,
                                                     '& .MuiOutlinedInput-root': {
                                                         borderRadius: 1.5,
                                                         bgcolor: '#fff',
                                                         fontSize: '0.875rem',
-                                                    },
-                                                    '& .MuiOutlinedInput-notchedOutline': {
-                                                        borderColor: '#e8ecf0',
+                                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                                            borderColor: '#FF8243',
+                                                        },
                                                     },
                                                     '& input': { textAlign: 'right' },
                                                 }}
                                             />
-
-                                            {/* 삭제 버튼 */}
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => handleRemoveRow(index)}
-                                                disabled={foods.length === 1}
-                                                sx={{
-                                                    color: '#cbd5e1',
-                                                    flexShrink: 0,
-                                                    '&:hover': { color: '#EF5350', bgcolor: '#fef2f2' },
-                                                    '&.Mui-disabled': { opacity: 0.3 },
-                                                }}
-                                            >
-                                                <DeleteOutline fontSize="small" />
-                                            </IconButton>
                                         </Box>
 
                                         {/* 하단: 사진 추가 영역 */}
@@ -1067,9 +1092,9 @@ function AddRecordCard({ onRefresh, userId, selectedDate, initialFoodName = '', 
                                         fontSize: '0.875rem',
                                         bgcolor: '#fff',
                                         borderRadius: 2,
-                                    },
-                                    '& .MuiOutlinedInput-notchedOutline': {
-                                        borderColor: '#e8ecf0',
+                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                            borderColor: '#FF8243',
+                                        },
                                     },
                                 }}
                             />
@@ -1094,7 +1119,7 @@ function AddRecordCard({ onRefresh, userId, selectedDate, initialFoodName = '', 
                                 variant="contained"
                                 onClick={handleSubmit}
                                 startIcon={<Add />}
-                                sx={{ borderRadius: 2 }}
+                                sx={{ borderRadius: 2, bgcolor: '#FF8243', '&:hover': { bgcolor: '#e8722f' } }}
                             >
                                 {foods.filter((f) => f.name.trim()).length}개 저장
                             </Button>
