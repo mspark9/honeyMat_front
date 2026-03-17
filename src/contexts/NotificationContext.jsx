@@ -54,10 +54,12 @@ export function NotificationProvider({ children }) {
     }
   }, [user, enabled]);
 
-  // user/알림설정 변경 시 미읽음 상태 조회
+  // user/알림설정 변경 시 미읽음 상태 조회 (30초마다 폴링)
   useEffect(() => {
     if (user && enabled) {
       fetchUnreadStatus();
+      const interval = setInterval(fetchUnreadStatus, 30_000);
+      return () => clearInterval(interval);
     } else {
       setHasUnreadNotifications(false);
     }
