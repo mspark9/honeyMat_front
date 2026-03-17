@@ -19,7 +19,6 @@ import {
   isSameDay,
 } from 'date-fns';
 
-// test
 
 const calculateWeeklyAverageIntake = (records) => {
   if (!records.length) {
@@ -568,14 +567,14 @@ const ReportPage = () => {
             >
               <h2
                 className={`text-gray-700 ${isAtMost380
-                    ? 'text-[11px]'
-                    : isAtMost450
-                      ? 'text-[14px]'
-                      : isAtMost800
-                        ? 'text-[15px]'
-                        : isAtMost1100
-                          ? 'text-[17px]'
-                          : 'text-[19px]'
+                  ? 'text-[11px]'
+                  : isAtMost450
+                    ? 'text-[14px]'
+                    : isAtMost800
+                      ? 'text-[15px]'
+                      : isAtMost1100
+                        ? 'text-[17px]'
+                        : 'text-[19px]'
                   }`}
               >
                 <span className="font-semibold pr-1 inline-block align-bottom">
@@ -613,10 +612,10 @@ const ReportPage = () => {
                     )}
                     <div
                       className={`flex items-center gap-0.5 font-bold ${diffScoreTextSizeClass} ${diffLastWeek > 0
-                          ? 'text-emerald-600'
-                          : diffLastWeek < 0
-                            ? 'text-sky-600'
-                            : 'text-gray-600'
+                        ? 'text-emerald-600'
+                        : diffLastWeek < 0
+                          ? 'text-sky-600'
+                          : 'text-gray-600'
                         }`}
                     >
                       {diffLastWeek > 0 ? (
@@ -652,10 +651,10 @@ const ReportPage = () => {
                   )}
                   <div
                     className={`flex items-center gap-0.5 font-bold ${diffScoreTextSizeClass} ${diffLastWeek > 0
-                        ? 'text-emerald-600'
-                        : diffLastWeek < 0
-                          ? 'text-sky-600'
-                          : 'text-gray-600'
+                      ? 'text-emerald-600'
+                      : diffLastWeek < 0
+                        ? 'text-sky-600'
+                        : 'text-gray-600'
                       }`}
                   >
                     {diffLastWeek > 0 ? (
