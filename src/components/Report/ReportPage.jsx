@@ -331,6 +331,26 @@ const ReportPage = () => {
       setIsAiLoading(true);
       setIsFoodListLoading(true);
       try {
+
+        const data = await api.post('/api/ai/report-review', aiPayload);
+
+        if (!data?.success) {
+          const fallback = buildFallbackReview();
+          setAiReview({
+            review: fallback.review,
+            improvementPoints: fallback.improvementPoints,
+          });
+          setFoodList([]);
+          try {
+            localStorage.setItem(
+              aiCacheStorageKey,
+              JSON.stringify({
+                signature: aiNutritionSignature,
+                review: fallback.review,
+                improvementPoints: fallback.improvementPoints,
+                foodList: [],
+              }),
+
         const cachedRaw = localStorage.getItem(aiCacheStorageKey);
         if (cachedRaw) {
           const cached = JSON.parse(cachedRaw);
@@ -355,10 +375,40 @@ const ReportPage = () => {
               Array.isArray(cached.recommendedFoods)
                 ? cached.recommendedFoods
                 : [],
+
             );
             return;
           }
           localStorage.removeItem(aiCacheStorageKey);
+        }
+
+
+        const safePoints = Array.isArray(data.improvementPoints)
+          ? data.improvementPoints.filter(Boolean).slice(0, 3)
+          : [];
+        const safeFoods = normalizeRecommendedFoods(data.recommendedFoods);
+
+        setAiReview({
+          review:
+            data.review ||
+            '주간 리포트 분석 결과를 기반으로 한 AI 리뷰가 준비되었습니다.',
+          improvementPoints: safePoints,
+        });
+        setFoodList(safeFoods);
+        try {
+          localStorage.setItem(
+            aiCacheStorageKey,
+            JSON.stringify({
+              signature: aiNutritionSignature,
+              review:
+                data.review ||
+                '주간 리포트 분석 결과를 기반으로 한 AI 리뷰가 준비되었습니다.',
+              improvementPoints: safePoints,
+              foodList: safeFoods,
+            }),
+          );
+        } catch (error) {
+          console.error('AI review cache write error:', error);
         }
 
         const payload = {
@@ -393,6 +443,7 @@ const ReportPage = () => {
             updatedAt: Date.now(),
           }),
         );
+
       } catch (error) {
         console.error(error);
         setAiReview(fallbackReview);
@@ -423,12 +474,41 @@ const ReportPage = () => {
     try {
       const data = await api.post('/api/ai/recommend-foods', {
         currentReview: aiReview.review,
+
+        weeklyAverageIntake: aiPayload.weeklyAverageIntake,
+        nutritionGoals: aiPayload.nutritionGoals,
+      });
+      const refreshedFoods = normalizeRecommendedFoods(data?.recommendedFoods);
+
+      if (refreshedFoods.length) {
+        setFoodList(refreshedFoods);
+        try {
+          const cached = localStorage.getItem(aiCacheStorageKey);
+          const parsedCached = cached ? JSON.parse(cached) : {};
+          localStorage.setItem(
+            aiCacheStorageKey,
+            JSON.stringify({
+              signature: aiNutritionSignature,
+              review: parsedCached?.review || aiReview.review,
+              improvementPoints:
+                parsedCached?.improvementPoints || aiReview.improvementPoints,
+              foodList: refreshedFoods,
+            }),
+          );
+        } catch (error) {
+          console.error('AI review cache write error:', error);
+        }
+      }
+    } catch (error) {
+      console.error('AI recommendation refresh error:', error);
+
         weeklyAverageIntake,
         nutritionGoals: goals,
       });
       setFoodList(data?.recommendedFoods || []);
     } catch (e) {
       console.error(e);
+
     } finally {
       setIsFoodListLoading(false);
     }
