@@ -19,6 +19,8 @@ import {
   isSameDay,
 } from 'date-fns';
 
+// test
+
 const calculateWeeklyAverageIntake = (records) => {
   if (!records.length) {
     return { calories: 0, carbohydrate: 0, protein: 0, fat: 0, sugars: 0 };
@@ -215,8 +217,8 @@ const ReportPage = () => {
     () =>
       dailyData.length
         ? Math.round(
-            dailyData.reduce((acc, cur) => acc + (cur.score || 0), 0) / 7,
-          )
+          dailyData.reduce((acc, cur) => acc + (cur.score || 0), 0) / 7,
+        )
         : 0,
     [dailyData],
   );
@@ -645,8 +647,7 @@ const ReportPage = () => {
               className={`bg-white ${isAtMost450 ? 'px-2 py-2' : isAtMost600 ? 'px-5 py-4' : 'p-5'} rounded-xl shadow-sm border-l-8 border-[#FF8243] flex justify-between items-center`}
             >
               <h2
-                className={`text-gray-700 ${
-                  isAtMost380
+                className={`text-gray-700 ${isAtMost380
                     ? 'text-[11px]'
                     : isAtMost450
                       ? 'text-[14px]'
@@ -655,7 +656,7 @@ const ReportPage = () => {
                         : isAtMost1100
                           ? 'text-[17px]'
                           : 'text-[19px]'
-                }`}
+                  }`}
               >
                 <span className="font-semibold pr-1 inline-block align-bottom">
                   {shouldMarqueeNickname ? (
@@ -691,13 +692,12 @@ const ReportPage = () => {
                       </span>
                     )}
                     <div
-                      className={`flex items-center gap-0.5 font-bold ${diffScoreTextSizeClass} ${
-                        diffLastWeek > 0
+                      className={`flex items-center gap-0.5 font-bold ${diffScoreTextSizeClass} ${diffLastWeek > 0
                           ? 'text-emerald-600'
                           : diffLastWeek < 0
                             ? 'text-sky-600'
                             : 'text-gray-600'
-                      }`}
+                        }`}
                     >
                       {diffLastWeek > 0 ? (
                         <FaPlus size={diffScoreIconSize} />
@@ -731,13 +731,12 @@ const ReportPage = () => {
                     </span>
                   )}
                   <div
-                    className={`flex items-center gap-0.5 font-bold ${diffScoreTextSizeClass} ${
-                      diffLastWeek > 0
+                    className={`flex items-center gap-0.5 font-bold ${diffScoreTextSizeClass} ${diffLastWeek > 0
                         ? 'text-emerald-600'
                         : diffLastWeek < 0
                           ? 'text-sky-600'
                           : 'text-gray-600'
-                    }`}
+                      }`}
                   >
                     {diffLastWeek > 0 ? (
                       <FaPlus size={diffScoreIconSize} />
@@ -765,7 +764,7 @@ const ReportPage = () => {
               id="report-bal-def-grid"
               className={
                 isPdfMode ||
-                (!isBetween1024And1199 && !isAtMost870 && !isAtMost1400)
+                  (!isBetween1024And1199 && !isAtMost870 && !isAtMost1400)
                   ? 'grid grid-cols-2 gap-5'
                   : 'grid grid-cols-1 gap-5'
               }
@@ -804,9 +803,9 @@ const ReportPage = () => {
                       isPdfMode
                         ? false
                         : ((isAtMost1400 && !isAtMost870) || isAtMost500) &&
-                          !isBetween1024And1199 &&
-                          !isBetween1200And1400 &&
-                          !isBetween870And1023
+                        !isBetween1024And1199 &&
+                        !isBetween1200And1400 &&
+                        !isBetween870And1023
                     }
                     compactYFor600={isAtMost600}
                     compactFor500={isAtMost500}
