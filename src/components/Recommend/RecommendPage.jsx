@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FoodCardRecommend from './FoodCardRecommend';
 import { FaStar, FaSearch, FaCircle } from 'react-icons/fa';
@@ -48,6 +48,7 @@ const RecommendPage = () => {
   const [tagLoadingByFoodId, setTagLoadingByFoodId] = useState({});
   const [showCardTagSkeleton, setShowCardTagSkeleton] = useState(false);
   const [showTagSkeleton, setShowTagSkeleton] = useState(false);
+  const [hasEverHadDisplayedCards, setHasEverHadDisplayedCards] = useState(false);
   const tagSkeletonStartRef = useRef(0);
   const tagSkeletonHideTimerRef = useRef(null);
   const cardTagSkeletonHideTimerRef = useRef(null);
@@ -647,18 +648,18 @@ const RecommendPage = () => {
     navigate('/home/dailyLog', { state: { food } });
   };
 
-  const handleCardTagsChange = (foodId, nextTags = []) => {
+  const handleCardTagsChange = useCallback((foodId, nextTags = []) => {
     const deduped = [...new Set((nextTags || []).map(normalizeTagLabel).filter(Boolean))];
     setRecommendedFoods((prev) =>
       prev.map((food) =>
         food.id === foodId ? { ...food, tags: deduped } : food,
       ),
     );
-  };
+  }, []);
 
-  const handleCardTagLoadingChange = (foodId, isLoading) => {
+  const handleCardTagLoadingChange = useCallback((foodId, isLoading) => {
     setTagLoadingByFoodId((prev) => ({ ...prev, [foodId]: isLoading }));
-  };
+  }, []);
 
   const performDelete = (id, name) => {
     const currentFoods = recommendedFoodsRef.current;
@@ -751,6 +752,10 @@ const RecommendPage = () => {
       }
     });
 
+  useEffect(() => {
+    if (displayFoods.length > 0) setHasEverHadDisplayedCards(true);
+  }, [displayFoods.length]);
+
   const renderChatbotPanel = (showCloseButton = false) => (
     <>
       <div className="p-4 border-b border-gray-100 bg-white shrink-0 flex items-center justify-between">
@@ -827,6 +832,13 @@ const RecommendPage = () => {
         .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #FF8203; border-radius: 10px; }
+        @keyframes recommend-float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-12px); }
+        }
+        .recommend-float-img {
+          animation: recommend-float 2.5s ease-in-out infinite;
+        }
       `}</style>
 
       {/* 좌측: AI 챗봇 영역 */}
@@ -1099,8 +1111,14 @@ const RecommendPage = () => {
                   <p className="text-[16px] font-medium">
                     '{finalSearchTerm}' 검색 결과가 없습니다.
                   </p>
-                ) : (
+                ) : selectedTags.length > 0 || isFavoriteView || hasEverHadDisplayedCards ? (
                   <p className="text-[16px] font-medium">결과가 없습니다.</p>
+                ) : (
+                  <img
+                    src="/honeymat_hex.png"
+                    alt="HoneyMat"
+                    className="w-[50%] mx-auto recommend-float-img"
+                  />
                 )}
                 <div className="mt-4 flex items-center gap-2">
                   {selectedTags.length > 0 && (
