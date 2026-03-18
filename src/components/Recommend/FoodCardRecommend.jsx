@@ -13,6 +13,9 @@ const FoodCardRecommend = ({
   forceLargeSelectButton = false,
   isAtMost450 = false,
   isFavorite,
+  onTagsChange,
+  onTagLoadingChange,
+  forceTagSkeleton = false,
   onToggleFavorite,
   onDelete,
   onToggleCheck,
@@ -26,17 +29,26 @@ const FoodCardRecommend = ({
   const cardRef = useRef(null);
   const titleRef = useRef(null);
   const containerRef = useRef(null);
+  const onTagsChangeRef = useRef(onTagsChange);
+  const onTagLoadingChangeRef = useRef(onTagLoadingChange);
+  onTagsChangeRef.current = onTagsChange;
+  onTagLoadingChangeRef.current = onTagLoadingChange;
 
   useEffect(() => {
     const fetchAiTags = async () => {
       // 이미 데이터에 태그가 있거나 로딩 중이면 중단
       if ((food.tags && food.tags.length > 0) || tags.length > 0) {
-        if (food.tags && tags.length === 0) setTags(food.tags);
+        if (food.tags && tags.length === 0) {
+          setTags(food.tags);
+          onTagsChangeRef.current?.(food.id, food.tags);
+        }
+        onTagLoadingChangeRef.current?.(food.id, false);
         setIsLoading(false);
         return;
       }
 
       setIsLoading(true);
+      onTagLoadingChangeRef.current?.(food.id, true);
       try {
         const data = await api.post('/api/ai/food-tags', {
           foodname: food.name,
@@ -49,15 +61,16 @@ const FoodCardRecommend = ({
 
         const aiTags = Array.isArray(data.tags) ? data.tags : [];
         setTags(aiTags);
-        food.tags = aiTags;
+        onTagsChangeRef.current?.(food.id, aiTags);
       } catch (error) {
         console.error('AI 태그 생성 실패:', error);
       } finally {
         setIsLoading(false);
+        onTagLoadingChangeRef.current?.(food.id, false);
       }
     };
     fetchAiTags();
-  }, [food]);
+  }, [food.id, food.name, food.kcal, food.carbs, food.protein, food.fat, food.sugar, (food.tags || []).length, tags.length]);
 
   useEffect(() => {
     if (!isLoading && titleRef.current && containerRef.current) {
@@ -119,7 +132,7 @@ const FoodCardRecommend = ({
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onToggleFavorite(food.id);
+            onToggleFavorite?.(food.id);
           }}
           className={`focus:outline-none ${isCompact ? 'p-1' : 'p-1.5'}`}
         >
@@ -215,7 +228,7 @@ const FoodCardRecommend = ({
             : 'flex-wrap overflow-visible'
         }`}
       >
-        {isLoading && tags.length === 0 ? (
+        {forceTagSkeleton || (isLoading && tags.length === 0) ? (
           <>
             <div className="w-16 h-[26px] bg-gray-100 rounded-md animate-pulse shrink-0" />
             <div className="w-22 h-[26px] bg-gray-100 rounded-md animate-pulse shrink-0" />
@@ -239,7 +252,7 @@ const FoodCardRecommend = ({
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onDelete(food.id, food.name);
+            onDelete?.(food.id, food.name);
           }}
           className={`text-gray-300 hover:text-gray-700 mt-1 ${
             isCompact ? 'p-0.5' : 'p-1'

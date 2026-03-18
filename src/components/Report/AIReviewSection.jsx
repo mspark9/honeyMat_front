@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PiChefHat } from 'react-icons/pi';
 import { IoMdRefresh } from 'react-icons/io';
 import FoodCardRecommend from '../Recommend/FoodCardRecommend';
@@ -13,6 +14,8 @@ const AIReviewSection = ({
   isAtMost1800 = false,
   isAtMost600 = false,
   isAtMost450 = false,
+  isPdfExport = false,
+  renderHeaderAction,
 }) => {
   const chefHatSize = isAtMost450 ? 23 : isAtMost600 ? 24 : 25;
   const loadingRefreshIconSize = isAtMost450 ? 18 : isAtMost600 ? 19 : 20;
@@ -53,16 +56,53 @@ const AIReviewSection = ({
       ? 'text-[16px]'
       : 'text-[17px]';
 
+  const navigate = useNavigate();
+  const [favorites, setFavorites] = useState(() => {
+    const saved = localStorage.getItem('food-favorites');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [removedIds, setRemovedIds] = useState([]);
+
+  useEffect(() => {
+    localStorage.setItem('food-favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  useEffect(() => {
+    setRemovedIds([]);
+  }, [foodList]);
+
+  const displayFoodList = foodList
+    .filter((f) => !removedIds.includes(f.id))
+    .slice(0, isPdfExport ? 3 : 999);
+
+  const handleToggleFavorite = (id) => {
+    const isFav = favorites.includes(id);
+    setFavorites((prev) =>
+      isFav ? prev.filter((favId) => favId !== id) : [...prev, id],
+    );
+  };
+
+  const handleDelete = (id) => {
+    setRemovedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  };
+
+  const handleToggleCheck = (food) => {
+    navigate('/home/dailyLog', { state: { food } });
+  };
+
   return (
     <div className="bg-white py-5 px-5 rounded-2xl shadow-sm border border-gray-100">
-      <h3
-        className={`font-bold ${titleTextClass} mb-4 flex items-center text-gray-800`}
-      >
-        <span className="mr-2">
-          <PiChefHat size={chefHatSize} color="#FF8243" />
-        </span>
-        AI 영양사 리뷰
-      </h3>
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <h3
+          className={`font-bold ${titleTextClass} flex items-center text-gray-800`}
+        >
+          <span className="mr-2">
+            <PiChefHat size={chefHatSize} color="#FF8243" />
+          </span>
+          AI 영양사 리뷰
+        </h3>
+        {renderHeaderAction?.()}
+      </div>
       {isAiLoading ? (
         <div className="relative space-y-4 text-gray-700 leading-relaxed min-h-[940px] max-h-[940px] overflow-hidden">
           <div className="min-h-[140px] max-h-[140px] flex items-start">
@@ -103,7 +143,9 @@ const AIReviewSection = ({
                 </button>
               </div>
             </div>
-            <div className="flex flex-col min-h-[520px] max-h-[520px] mb-5">
+            <div
+              className={`flex flex-col mb-5 ${isAtMost1800 ? 'min-h-[350px] max-h-[350px]' : 'min-h-[520px] max-h-[520px]'}`}
+            >
               <div className="h-[250px] bg-gray-100 rounded-2xl mb-5"></div>
               <div className="h-[250px] bg-gray-100 rounded-2xl"></div>
             </div>
@@ -152,9 +194,8 @@ const AIReviewSection = ({
             </ul>
           </div>
           <div
-            className={`pt-3 border-t border-gray-100 ${
-              isAtMost1800 ? 'pb-[152px]' : 'pb-2'
-            }`}
+            id="report-recommend-meal-section"
+            className={`pt-3 border-t border-gray-100 ${isPdfExport ? 'pb-[5px]' : 'pb-[10px]'}`}
           >
             <div className="flex items-center justify-between mb-3">
               <h4
@@ -174,24 +215,43 @@ const AIReviewSection = ({
                 </button>
               </div>
             </div>
-            <div className="flex flex-col min-h-[520px] max-h-[520px]">
+            <div
+              id="report-recommend-meal-content"
+              className={`overflow-y-auto report-scrollbar ${isAtMost1800 ? 'max-h-[350px]' : 'max-h-[520px]'}`}
+            >
               {isFoodListLoading ? (
-                <>
-                  <div className="h-[250px] bg-gray-100 rounded-2xl mb-5"></div>
-                  <div className="h-[250px] bg-gray-100 rounded-2xl"></div>
-                </>
+                <div className="flex flex-col gap-2 [&>*]:mb-0">
+                  <div className="h-[250px] bg-gray-100 rounded-2xl w-full" />
+                  <div className="h-[250px] bg-gray-100 rounded-2xl w-full" />
+                </div>
+              ) : displayFoodList.length > 0 ? (
+                <div className="flex flex-col gap-2 [&>*]:mb-0">
+                  {displayFoodList.map((item, index) => (
+                    <FoodCardRecommend
+                      key={`${item.id || item.name}-${index}`}
+                      food={{
+                        ...item,
+                        id: item.id || `${item.name}-${item.kcal || 0}-${index}`,
+                        tags: Array.isArray(item?.tags) ? item.tags : [],
+                      }}
+                      isHalfSplitLayout={isAtMost1800}
+                      isNutrientSplitViewport={isAtMost1800}
+                      forceSingleRowNutrients={
+                        isPdfExport || (isAtMost600 && !isAtMost450)
+                      }
+                      forceLargeSelectButton={isAtMost450}
+                      isAtMost450={isAtMost450}
+                      isFavorite={favorites.includes(item.id)}
+                      onToggleFavorite={() => handleToggleFavorite(item.id)}
+                      onDelete={(id) => handleDelete(id)}
+                      onToggleCheck={() => handleToggleCheck(item)}
+                    />
+                  ))}
+                </div>
               ) : (
-                foodList.slice(0, 2).map((item) => (
-                  <FoodCardRecommend
-                    key={item.id}
-                    isNutrientSplitViewport={isAtMost1800}
-                    isAtMost450={isAtMost450}
-                    food={{
-                      ...item,
-                      tags: Array.isArray(item?.tags) ? item.tags : [],
-                    }}
-                  />
-                ))
+                <div className="flex flex-col items-center justify-center py-12 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
+                  <p className="text-[14px] font-medium">추천 음식이 없습니다.</p>
+                </div>
               )}
             </div>
           </div>
