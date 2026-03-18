@@ -860,6 +860,13 @@ const RecommendPage = () => {
           animation: recommend-float 2.5s ease-in-out infinite;
           filter: drop-shadow(0 8px 16px rgba(245, 204, 184, 0.5));
         }
+        @media (min-width: 1570px) {
+          .recommend-float-img {
+            height: 352px;
+            width: auto;
+            object-fit: contain;
+          }
+        }
         .recommend-hint-text .hint-line-1 { display: inline; }
         .recommend-hint-text .hint-line-2 { display: inline; }
         @media (max-width: 860px) and (min-width: 680px), (max-width: 530px) {
@@ -1150,7 +1157,13 @@ const RecommendPage = () => {
                       alt="HoneyMat"
                       className="w-[45%] mx-auto recommend-float-img"
                     />
-                    <p className="recommend-hint-text text-[13px] text-[#FF8243] text-center mt-[17px]">
+                    <p
+                      className={`recommend-hint-text text-[#FF8243] text-center ${
+                        isHalfSplitLayout
+                          ? 'text-[13px] mt-[17px]'
+                          : 'text-[15px] mt-[22px]'
+                      }`}
+                    >
                       <span className="hint-line-1">원하는 식단을 검색하거나</span>
                       <span className="hint-line-2"> 챗봇에게 추천받으세요</span>
                     </p>
