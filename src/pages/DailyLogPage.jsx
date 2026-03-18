@@ -18,6 +18,8 @@ import {
     MenuItem,
     FormControl,
     InputLabel,
+    InputAdornment,
+    useMediaQuery,
 } from '@mui/material';
 import {
     ChevronLeft,
@@ -370,21 +372,21 @@ function MealCard({ meal, data, isToday, dateStr, nutrientConfig }) {
                                     {((food.image && !food.aiScanId) ||
                                         (food.aiScanId && food.image && !hasSharedImage) ||
                                         (i === 0 && hasSharedImage && aiScanImage)) && (
-                                        <Box sx={{ mt: 1 }}>
-                                            <Box
-                                                component="img"
-                                                src={(i === 0 && hasSharedImage && aiScanImage) ? aiScanImage : food.image}
-                                                alt={`${food.name} 사진`}
-                                                sx={{
-                                                    width: 80,
-                                                    height: 80,
-                                                    objectFit: 'cover',
-                                                    borderRadius: 1.5,
-                                                    border: `2px solid ${color}`,
-                                                }}
-                                            />
-                                        </Box>
-                                    )}
+                                            <Box sx={{ mt: 1 }}>
+                                                <Box
+                                                    component="img"
+                                                    src={(i === 0 && hasSharedImage && aiScanImage) ? aiScanImage : food.image}
+                                                    alt={`${food.name} 사진`}
+                                                    sx={{
+                                                        width: 80,
+                                                        height: 80,
+                                                        objectFit: 'cover',
+                                                        borderRadius: 1.5,
+                                                        border: `2px solid ${color}`,
+                                                    }}
+                                                />
+                                            </Box>
+                                        )}
                                 </Box>
                             ))}
                             <Box
@@ -520,6 +522,7 @@ const EMPTY_FOOD = () => ({
 });
 
 function AddRecordCard({ onRefresh, userId, selectedDate, initialFoodName = '', initialFoodKcal = '' }) { // 외부에서 전달된 초기 음식명
+    const isNarrow = useMediaQuery('(max-width:338px)');
     const [open, setOpen] = useState(false);
     const [selectedMeal, setSelectedMeal] = useState('breakfast');
     const [foods, setFoods] = useState([EMPTY_FOOD()]);
@@ -881,18 +884,26 @@ function AddRecordCard({ onRefresh, userId, selectedDate, initialFoodName = '', 
                                         </Box>
 
                                         {/* 2행: g, kcal */}
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, ml: 3.5 }}>
+                                        <Box sx={{ display: 'flex', flexDirection: isNarrow ? 'column' : 'row', alignItems: isNarrow ? 'stretch' : 'center', gap: 1, mt: 1, ml: 3.5 }}>
                                             {/* 1회 제공량 (g) */}
                                             <TextField
                                                 size="small"
-                                                placeholder="g"
+                                                placeholder="입력"
                                                 type="number"
                                                 value={food.servingSize}
                                                 onChange={(e) =>
                                                     handleFoodChange(index, 'servingSize', e.target.value)
                                                 }
+                                                InputProps={{
+                                                    endAdornment: (
+                                                        <InputAdornment position="end">
+                                                            <Typography variant="caption" color="text.secondary">g</Typography>
+                                                        </InputAdornment>
+                                                    ),
+                                                }}
                                                 sx={{
-                                                    flex: 1,
+                                                    flex: isNarrow ? undefined : 1,
+                                                    width: isNarrow ? '100%' : undefined,
                                                     '& .MuiOutlinedInput-root': {
                                                         borderRadius: 1.5,
                                                         bgcolor: '#fff',
@@ -908,14 +919,22 @@ function AddRecordCard({ onRefresh, userId, selectedDate, initialFoodName = '', 
                                             {/* 칼로리 */}
                                             <TextField
                                                 size="small"
-                                                placeholder="kcal"
+                                                placeholder="입력"
                                                 type="number"
                                                 value={food.calories}
                                                 onChange={(e) =>
                                                     handleFoodChange(index, 'calories', e.target.value)
                                                 }
+                                                InputProps={{
+                                                    endAdornment: (
+                                                        <InputAdornment position="end">
+                                                            <Typography variant="caption" color="text.secondary">kcal</Typography>
+                                                        </InputAdornment>
+                                                    ),
+                                                }}
                                                 sx={{
-                                                    flex: 1,
+                                                    flex: isNarrow ? undefined : 1,
+                                                    width: isNarrow ? '100%' : undefined,
                                                     '& .MuiOutlinedInput-root': {
                                                         borderRadius: 1.5,
                                                         bgcolor: '#fff',
