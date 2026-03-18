@@ -255,6 +255,8 @@ export default function Alert() {
 
   useEffect(() => {
     fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30_000);
+    return () => clearInterval(interval);
   }, [fetchNotifications]);
 
   const markAsRead = async (id) => {

@@ -263,7 +263,15 @@ const App = () => {
     setStep('scanning');
     try {
       const res = await analyzeFoodImage(file);
-      const { foods, totalCalories } = res;
+      const { foods, totalCalories, isFood } = res;
+
+      if (isFood === false || !foods || foods.length === 0) {
+        setError('음식이 아닙니다. 다시 업로드 해주세요.');
+        setStep('upload');
+        setSelectedImage(null);
+        setSelectedFile(null);
+        return;
+      }
       const protein = foods.reduce((s, f) => s + (Number(f.protein) || 0), 0);
       const fat = foods.reduce((s, f) => s + (Number(f.fat) || 0), 0);
       const carbs = foods.reduce(

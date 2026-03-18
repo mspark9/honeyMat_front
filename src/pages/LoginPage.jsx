@@ -50,6 +50,9 @@ export default function LoginPage() {
 
     const handleChange = (e) => {
         setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
+    const handleFocus = () => {
         setError('');
     };
 
@@ -65,7 +68,7 @@ export default function LoginPage() {
             auth.login(response.token, response.user);
             navigate('/home');
         } catch (err) {
-            setError(err.message);
+            setError('이메일 또는 비밀번호를 다시 입력해주세요.');
         } finally {
             setLoading(false);
         }
@@ -132,6 +135,7 @@ export default function LoginPage() {
                             type="email"
                             value={form.email}
                             onChange={handleChange}
+                            onFocus={handleFocus}
                             placeholder="example@email.com"
                             InputProps={{
                                 startAdornment: (
@@ -150,6 +154,7 @@ export default function LoginPage() {
                             type={showPassword ? 'text' : 'password'}
                             value={form.password}
                             onChange={handleChange}
+                            onFocus={handleFocus}
                             placeholder="••••••••"
                             InputProps={{
                                 startAdornment: (
@@ -172,8 +177,8 @@ export default function LoginPage() {
                             sx={{ mb: 1, ...textFieldFocusStyle }}
                         />
 
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                            <FormControlLabel
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 3 }}>
+                            {/* <FormControlLabel
                                 control={
                                     <Checkbox
                                         checked={rememberMe}
@@ -186,7 +191,7 @@ export default function LoginPage() {
                                     />
                                 }
                                 label={<Typography variant="body2" color="text.secondary">로그인 유지</Typography>}
-                            />
+                            /> */}
                             <Link
                                 component={RouterLink}
                                 to="/forgot-password"
