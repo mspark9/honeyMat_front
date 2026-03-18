@@ -64,6 +64,7 @@ const ReportCards = ({
   enableSingleSelect = false,
   compactYFor600 = false,
   compactFor500 = false,
+  isPdfExport = false,
 }) => {
   const [activePanel, setActivePanel] = useState('excess');
 
@@ -146,7 +147,7 @@ const ReportCards = ({
         <div
           className={`flex-1 rounded-2xl border ${
             compactFor500 ? 'p-1.5' : compactYFor600 ? 'p-2' : 'p-3'
-          } overflow-y-auto ${
+          } overflow-y-auto report-scrollbar ${
             activePanel === 'excess'
               ? 'bg-rose-50/50 border-rose-100'
               : 'bg-sky-50/50 border-sky-100'
@@ -194,17 +195,18 @@ const ReportCards = ({
     );
   }
 
+  const fillMaxClass = 'h-full min-h-0 grid-rows-[1fr]';
+  const sectionFillClass = 'min-h-0 flex-1';
+
   return (
     <div
-      className={`grid grid-cols-2 gap-5 ${
-        compactYFor600 ? 'h-[300px]' : 'h-[350px]'
-      } ${compactYFor600 ? 'mt-1' : 'mt-2'}`}
+      className={`grid grid-cols-2 gap-5 ${fillMaxClass} ${
+        compactYFor600 && !isPdfExport ? 'mt-1' : 'mt-2'
+      }`}
     >
       {/* 과잉 섹션 */}
       <div
-        className={`${compactYFor600 ? 'p-3' : 'p-4'} rounded-3xl flex flex-col bg-rose-50/50 border border-rose-100 ${
-          compactYFor600 ? 'min-h-[210px]' : 'min-h-[280px]'
-        }`}
+        className={`${compactYFor600 ? 'p-3' : 'p-4'} rounded-3xl flex flex-col bg-rose-50/50 border border-rose-100 ${sectionFillClass}`}
       >
         <h4
           className={`text-center text-l font-black text-rose-600 ${
@@ -237,9 +239,7 @@ const ReportCards = ({
 
       {/* 결핍 섹션 */}
       <div
-        className={`${compactYFor600 ? 'p-3' : 'p-4'} rounded-3xl flex flex-col bg-sky-50/50 border border-sky-100 ${
-          compactYFor600 ? 'min-h-[210px]' : 'min-h-[280px]'
-        }`}
+        className={`${compactYFor600 ? 'p-3' : 'p-4'} rounded-3xl flex flex-col bg-sky-50/50 border border-sky-100 ${sectionFillClass}`}
       >
         <h4
           className={`text-center text-l font-black text-sky-600 ${

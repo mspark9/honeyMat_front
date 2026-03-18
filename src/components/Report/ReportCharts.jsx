@@ -71,6 +71,8 @@ export const WeeklyLineChart = ({
   maximizeForSmallScreen = false,
   legendFontSize = 14,
   compactTextForNarrow = false,
+  compactTooltipFor800 = false,
+  chartHeight,
 }) => {
   // 활성화된 시리즈 상태 관리
   const [activeSeries, setActiveSeries] = useState([
@@ -127,7 +129,7 @@ export const WeeklyLineChart = ({
         strokeWidth={2}
         strokeOpacity={isActive ? 1 : 0}
         dot={isActive ? { r: 3, fill: color } : false}
-        activeDot={isActive ? { r: 3 } : false}
+        activeDot={false}
       />
     );
   };
@@ -165,10 +167,11 @@ export const WeeklyLineChart = ({
     inactive: !activeSeries.includes(item.dataKey),
   }));
 
+  const height = chartHeight ?? (maximizeForSmallScreen ? 390 : 353);
   return (
     <ResponsiveContainer
       width="100%"
-      height={maximizeForSmallScreen ? 390 : 353}
+      height={height}
     >
       <ComposedChart
         data={data}
@@ -202,17 +205,19 @@ export const WeeklyLineChart = ({
           orientation="right"
           tick={{ fontSize: axisFontSize }}
         />
-        <Tooltip
-          contentStyle={{
-            fontSize: compactTextForNarrow ? '12px' : '13px',
-          }}
-          itemStyle={{
-            fontSize: compactTextForNarrow ? '12px' : '13px',
-          }}
-          labelStyle={{
-            fontSize: compactTextForNarrow ? '12px' : '13px',
-          }}
-        />
+        {!compactTooltipFor800 && (
+          <Tooltip
+            contentStyle={{
+              fontSize: compactTextForNarrow ? '12px' : '13px',
+            }}
+            itemStyle={{
+              fontSize: compactTextForNarrow ? '12px' : '13px',
+            }}
+            labelStyle={{
+              fontSize: compactTextForNarrow ? '12px' : '13px',
+            }}
+          />
+        )}
         <Legend
           onClick={handleLegendClick}
           formatter={renderCustomLegendText}
