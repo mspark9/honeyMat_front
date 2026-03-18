@@ -16,7 +16,18 @@ const RecommendPage = () => {
   const LOADING_DELAY_MS = 1000;
   const TAG_SKELETON_MIN_MS = 5000;
   const navigate = useNavigate();
-  const [recommendedFoods, setRecommendedFoods] = useState([]);
+  const FAVORITES_DATA_KEY = 'food-favorites-data';
+
+  const [recommendedFoods, setRecommendedFoods] = useState(() => {
+    try {
+      const saved = localStorage.getItem(FAVORITES_DATA_KEY);
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
 
   // 검색 및 필터 상태
   const [searchTerm, setSearchTerm] = useState('');
@@ -137,6 +148,16 @@ const RecommendPage = () => {
   useEffect(() => {
     localStorage.setItem('food-favorites', JSON.stringify(favorites));
   }, [favorites]);
+
+  // 즐겨찾기 음식 객체를 localStorage에 저장 (새로고침 시 복원용)
+  useEffect(() => {
+    const toPersist = recommendedFoods.filter((f) => favorites.includes(f.id));
+    try {
+      localStorage.setItem(FAVORITES_DATA_KEY, JSON.stringify(toPersist));
+    } catch {
+      // localStorage 용량 초과 등
+    }
+  }, [recommendedFoods, favorites]);
 
   /**
    * '(' 가 나오기 전까지의 순수 이름만 추출하는 함수
@@ -721,6 +742,7 @@ const RecommendPage = () => {
 
   const handleConfirmDelete = () => {
     if (!deleteConfirm?.id) return;
+    setFavorites((prev) => prev.filter((id) => id !== deleteConfirm.id));
     performDelete(deleteConfirm.id, deleteConfirm.name);
     setDeleteConfirm(null);
   };
