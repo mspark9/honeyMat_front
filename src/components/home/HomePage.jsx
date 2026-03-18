@@ -8,6 +8,7 @@ import {
   Chip,
   CircularProgress,
   Button,
+  useMediaQuery,
 } from '@mui/material';
 import { ChevronRight } from '@mui/icons-material';
 import {
@@ -600,7 +601,19 @@ const GOAL_KEYS = {
   sugars: 'targetSugars',
 };
 
+function ScoreLabel(props) {
+  const { x, y, value } = props;
+  if (value == null || value === 0) return null;
+  return (
+    <text x={x} y={y - 10} textAnchor="middle" fill="#FF8243" fontSize={11} fontWeight={600}>
+      {value}
+    </text>
+  );
+}
+
 function ActivityScoreChart({ data: scores, summaries, goals }) {
+  const isMobile = useMediaQuery('(max-width:899.95px)');
+  const [selectedPoint, setSelectedPoint] = useState(null);
   const chartData = useMemo(() => {
     const today = new Date();
     const summaryByDate = Object.fromEntries(
@@ -692,6 +705,16 @@ function ActivityScoreChart({ data: scores, summaries, goals }) {
     );
   };
 
+  const handleDotClick = (dotData) => {
+    if (!isMobile) return;
+    const row = dotData?.payload ?? dotData;
+    if (!row?.dateStr) return;
+    setSelectedPoint((prev) => (prev?.dateStr === row.dateStr ? null : row));
+  };
+
+  const hasGoals =
+    goals && (goals.targetCalories != null || goals.targetCarbohydrate != null);
+
   return (
     <Paper
       elevation={0}
@@ -714,11 +737,12 @@ function ActivityScoreChart({ data: scores, summaries, goals }) {
           일별 영양 균형 점수 (0~100점, 높을수록 균형이 좋음)
         </Typography>
       </Box>
-      <Box sx={{ flex: 1, minHeight: 160, width: '100%' }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <Box sx={{ flex: 1, minHeight: 160, width: '100%', outline: 'none', '& *:focus': { outline: 'none' } }}>
+        <ResponsiveContainer width="100%" height="100%" style={{ outline: 'none' }}>
           <LineChart
             data={chartData}
-            margin={{ top: 8, right: 16, left: 0, bottom: 4 }}
+            margin={{ top: 20, right: 16, left: 0, bottom: 4 }}
+            style={{ outline: 'none' }}
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
             <XAxis
@@ -734,20 +758,107 @@ function ActivityScoreChart({ data: scores, summaries, goals }) {
               tickLine={false}
             />
             <Tooltip
-              content={<CustomTooltip />}
-              cursor={{ stroke: '#e5e7eb', strokeDasharray: '4 2' }}
+              content={isMobile ? () => null : <CustomTooltip />}
+              cursor={isMobile ? false : { stroke: '#e5e7eb', strokeDasharray: '4 2' }}
             />
             <Line
               type="monotone"
               dataKey="score"
               stroke="#FF8243"
               strokeWidth={2}
-              dot={{ r: 4, fill: '#FF8243', stroke: '#fff', strokeWidth: 2 }}
-              activeDot={{ r: 5, fill: '#FF8243', stroke: '#fff', strokeWidth: 2 }}
+              dot={(props) => {
+                const isSelected = isMobile && selectedPoint?.dateStr === props.payload?.dateStr;
+                return (
+                  <circle
+                    key={props.key}
+                    cx={props.cx}
+                    cy={props.cy}
+                    r={isSelected ? 6 : 4}
+                    fill={isSelected ? '#e5743c' : '#FF8243'}
+                    stroke="#fff"
+                    strokeWidth={2}
+                    style={isMobile ? { cursor: 'pointer' } : undefined}
+                    onClick={isMobile ? () => handleDotClick(props.payload) : undefined}
+                  />
+                );
+              }}
+              activeDot={
+                isMobile
+                  ? {
+                      r: 7,
+                      fill: '#e5743c',
+                      stroke: '#fff',
+                      strokeWidth: 2,
+                      onClick: (_event, dotData) => handleDotClick(dotData),
+                    }
+                  : { r: 5, fill: '#FF8243', stroke: '#fff', strokeWidth: 2 }
+              }
+              label={<ScoreLabel />}
             />
           </LineChart>
         </ResponsiveContainer>
       </Box>
+
+      {/* xs~sm 클릭 상세 패널 */}
+      {isMobile && selectedPoint && (
+        <Box
+          sx={{
+            mt: 2,
+            p: 2,
+            bgcolor: '#f8fafc',
+            borderRadius: 2,
+            border: '1px solid #e8ecf0',
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+            <Typography variant="body2" fontWeight={700} color="text.primary">
+              {selectedPoint.day}
+            </Typography>
+            <Typography variant="body2" fontWeight={700} sx={{ color: '#FF8243' }}>
+              {selectedPoint.score}점
+            </Typography>
+          </Box>
+          <Stack spacing={1}>
+            {NUTRIENT_ITEMS.map(({ key, label, apiKey, unit, color }) => {
+              const current = selectedPoint[apiKey] ?? 0;
+              const goal = hasGoals ? Number(goals[GOAL_KEYS[key]]) || 1 : null;
+              const pct = goal ? Math.min((current / goal) * 100, 100) : 0;
+              const valText =
+                unit === 'kcal'
+                  ? `${Math.round(current)}${goal ? ` / ${Math.round(goal)}` : ''} kcal`
+                  : `${Number(current).toFixed(1)}${goal ? ` / ${Number(goal).toFixed(1)}` : ''} ${unit}`;
+              return (
+                <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ width: 44, flexShrink: 0 }}>
+                    {label}
+                  </Typography>
+                  {goal && (
+                    <Box sx={{ flex: 1, minWidth: 40 }}>
+                      <LinearProgress
+                        variant="determinate"
+                        value={pct}
+                        sx={{
+                          height: 5,
+                          borderRadius: 2,
+                          bgcolor: '#e8ecf0',
+                          '& .MuiLinearProgress-bar': { bgcolor: color, borderRadius: 2 },
+                        }}
+                      />
+                    </Box>
+                  )}
+                  <Typography
+                    variant="caption"
+                    fontWeight={600}
+                    sx={{ color, flexShrink: 0, fontSize: '0.7rem' }}
+                  >
+                    {valText}
+                  </Typography>
+                </Box>
+              );
+            })}
+          </Stack>
+        </Box>
+      )}
     </Paper>
   );
 }
