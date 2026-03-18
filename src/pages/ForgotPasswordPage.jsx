@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { authApi } from '../api/auth';
 import { Link as RouterLink } from 'react-router-dom';
 import {
     Box,
@@ -120,6 +121,7 @@ export default function ForgotPasswordPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [resendCooldown, setResendCooldown] = useState(0);
+    const [resetToken, setResetToken] = useState('');
 
     // ── 코드 입력 핸들러 ──────────────────────────────────────────────────────
     const handleCodeChange = (index, value) => {
@@ -163,19 +165,30 @@ export default function ForgotPasswordPage() {
         if (!email.trim()) return setError('이메일을 입력해주세요.');
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError('올바른 이메일 형식을 입력해주세요.');
         setLoading(true);
-        await new Promise((r) => setTimeout(r, 1200));
-        setLoading(false);
-        setStep(1);
-        startCooldown();
+        try {
+            await authApi.forgotPasswordSendCode(email);
+            setStep(1);
+            startCooldown();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // ── Step 1: 인증 코드 확인 ────────────────────────────────────────────────
     const handleCodeSubmit = async () => {
         if (code.some((c) => !c)) return setError('인증 코드 6자리를 모두 입력해주세요.');
         setLoading(true);
-        await new Promise((r) => setTimeout(r, 1000));
-        setLoading(false);
-        setStep(2);
+        try {
+            const res = await authApi.forgotPasswordVerifyCode(email, code.join(''));
+            setResetToken(res.resetToken);
+            setStep(2);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // ── Step 2: 새 비밀번호 설정 ──────────────────────────────────────────────
@@ -185,9 +198,14 @@ export default function ForgotPasswordPage() {
             return setError('더 강한 비밀번호를 설정해주세요.');
         if (newPassword !== confirmPassword) return setError('비밀번호가 일치하지 않습니다.');
         setLoading(true);
-        await new Promise((r) => setTimeout(r, 1200));
-        setLoading(false);
-        setStep(3);
+        try {
+            await authApi.forgotPasswordResetPassword(resetToken, newPassword);
+            setStep(3);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // ── Step 3: 완료 ──────────────────────────────────────────────────────────
@@ -339,7 +357,16 @@ export default function ForgotPasswordPage() {
                             ) : (
                                 <Button
                                     size="small"
-                                    onClick={() => { setCode(['', '', '', '', '', '']); startCooldown(); }}
+                                    onClick={async () => {
+                                        setCode(['', '', '', '', '', '']);
+                                        setError('');
+                                        try {
+                                            await authApi.forgotPasswordResendCode(email);
+                                            startCooldown();
+                                        } catch (err) {
+                                            setError(err.message);
+                                        }
+                                    }}
                                     sx={{ color: 'text.secondary', fontSize: '0.8rem', textTransform: 'none' }}
                                 >
                                     코드를 받지 못하셨나요? <Box component="span" sx={{ color: 'primary.main', fontWeight: 700, ml: 0.5 }}>재전송</Box>
