@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import FoodCardRecommend from './FoodCardRecommend';
 import { FaStar, FaSearch, FaCircle } from 'react-icons/fa';
@@ -43,12 +49,14 @@ const RecommendPage = () => {
   const searchDebounceTimerRef = useRef(null);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
-  const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(-1);
+  const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] =
+    useState(-1);
   const [isSearchSuggestLoading, setIsSearchSuggestLoading] = useState(false);
   const [tagLoadingByFoodId, setTagLoadingByFoodId] = useState({});
   const [showCardTagSkeleton, setShowCardTagSkeleton] = useState(false);
   const [showTagSkeleton, setShowTagSkeleton] = useState(false);
-  const [hasEverHadDisplayedCards, setHasEverHadDisplayedCards] = useState(false);
+  const [hasEverHadDisplayedCards, setHasEverHadDisplayedCards] =
+    useState(false);
   const tagSkeletonStartRef = useRef(0);
   const tagSkeletonHideTimerRef = useRef(null);
   const cardTagSkeletonHideTimerRef = useRef(null);
@@ -176,7 +184,10 @@ const RecommendPage = () => {
     return [...toAdd, ...existing];
   };
 
-  const normalizeTagLabel = (tag) => String(tag ?? '').replace(/^#/, '').trim();
+  const normalizeTagLabel = (tag) =>
+    String(tag ?? '')
+      .replace(/^#/, '')
+      .trim();
 
   /**
    * 데이터 정규화 함수
@@ -252,7 +263,11 @@ const RecommendPage = () => {
   };
 
   const fetchFoodsByKeywords = async (keywords) => {
-    const uniqueKeywords = [...new Set((keywords || []).map((k) => String(k || '').trim()).filter(Boolean))];
+    const uniqueKeywords = [
+      ...new Set(
+        (keywords || []).map((k) => String(k || '').trim()).filter(Boolean),
+      ),
+    ];
     if (uniqueKeywords.length === 0) return [];
 
     const searched = await Promise.all(
@@ -261,7 +276,8 @@ const RecommendPage = () => {
         if (!results.length) return null;
         const exact = results.find(
           (item) =>
-            normalizeTagLabel(item.name).toLowerCase() === normalizeTagLabel(keyword).toLowerCase(),
+            normalizeTagLabel(item.name).toLowerCase() ===
+            normalizeTagLabel(keyword).toLowerCase(),
         );
         return exact || results[0];
       }),
@@ -350,7 +366,9 @@ const RecommendPage = () => {
 
   const isTagChecking = useMemo(() => {
     if (recommendedFoods.length === 0) return false;
-    return recommendedFoods.some((food) => tagLoadingByFoodId[food.id] === true);
+    return recommendedFoods.some(
+      (food) => tagLoadingByFoodId[food.id] === true,
+    );
   }, [recommendedFoods, tagLoadingByFoodId]);
 
   useEffect(() => {
@@ -649,7 +667,9 @@ const RecommendPage = () => {
   };
 
   const handleCardTagsChange = useCallback((foodId, nextTags = []) => {
-    const deduped = [...new Set((nextTags || []).map(normalizeTagLabel).filter(Boolean))];
+    const deduped = [
+      ...new Set((nextTags || []).map(normalizeTagLabel).filter(Boolean)),
+    ];
     setRecommendedFoods((prev) =>
       prev.map((food) =>
         food.id === foodId ? { ...food, tags: deduped } : food,
@@ -838,6 +858,12 @@ const RecommendPage = () => {
         }
         .recommend-float-img {
           animation: recommend-float 2.5s ease-in-out infinite;
+          filter: drop-shadow(0 8px 16px rgba(245, 204, 184, 0.5));
+        }
+        .recommend-hint-text .hint-line-1 { display: inline; }
+        .recommend-hint-text .hint-line-2 { display: inline; }
+        @media (max-width: 860px) and (min-width: 680px), (max-width: 530px) {
+          .recommend-hint-text .hint-line-1 { display: block; }
         }
       `}</style>
 
@@ -978,7 +1004,7 @@ const RecommendPage = () => {
                 }`}
               >
                 <div
-                  className={`flex items-center ${isUltraNarrowMobile ? 'gap-0' : 'gap-2'}`}
+                  className={`flex items-center ${isUltraNarrowMobile ? 'gap-1' : 'gap-2'}`}
                 >
                   <LuArrowDownUp
                     size={
@@ -1051,7 +1077,9 @@ const RecommendPage = () => {
                       }`}
                     >
                       {opt.label}
-                      {sortType === opt.value && (
+                      {sortType === opt.value &&
+                        (!isUltraNarrowMobile &&
+                          (isNarrowMobile || !isHalfSplitLayout)) && (
                         <LuCheck
                           size={
                             isUltraNarrowMobile
@@ -1111,14 +1139,22 @@ const RecommendPage = () => {
                   <p className="text-[16px] font-medium">
                     '{finalSearchTerm}' 검색 결과가 없습니다.
                   </p>
-                ) : selectedTags.length > 0 || isFavoriteView || hasEverHadDisplayedCards ? (
+                ) : selectedTags.length > 0 ||
+                  isFavoriteView ||
+                  hasEverHadDisplayedCards ? (
                   <p className="text-[16px] font-medium">결과가 없습니다.</p>
                 ) : (
-                  <img
-                    src="/honeymat_hex.png"
-                    alt="HoneyMat"
-                    className="w-[50%] mx-auto recommend-float-img"
-                  />
+                  <div className="flex flex-col items-center -mt-[7px]">
+                    <img
+                      src="/honeymat_hex.png"
+                      alt="HoneyMat"
+                      className="w-[45%] mx-auto recommend-float-img"
+                    />
+                    <p className="recommend-hint-text text-[13px] text-[#FF8243] text-center mt-[17px]">
+                      <span className="hint-line-1">원하는 식단을 검색하거나</span>
+                      <span className="hint-line-2"> 챗봇에게 추천받으세요</span>
+                    </p>
+                  </div>
                 )}
                 <div className="mt-4 flex items-center gap-2">
                   {selectedTags.length > 0 && (
@@ -1148,7 +1184,10 @@ const RecommendPage = () => {
         {deleteNotice && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 w-[calc(100%-1rem)] max-w-[515px] max-[1200px]:max-w-[455px] max-[900px]:max-w-[415px] bg-gray-800 text-white rounded-lg px-4 py-3 shadow-lg flex items-center justify-between gap-3">
             <div className="ml-1 flex shrink-0 items-center">
-              <FaCircle className="w-3 h-3 max-[800px]:w-2 max-[800px]:h-2" color="#FF8243" />
+              <FaCircle
+                className="w-3 h-3 max-[800px]:w-2 max-[800px]:h-2"
+                color="#FF8243"
+              />
             </div>
             <p className="text-[15px] max-[1200px]:text-[12px] max-[900px]:text-[10px] min-w-0 flex-1">
               <span className="inline-block max-w-[230px] max-[1200px]:max-w-[180px] max-[900px]:max-w-[150px] truncate align-bottom font-bold">
